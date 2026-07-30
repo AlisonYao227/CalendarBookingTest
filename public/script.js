@@ -2548,9 +2548,8 @@ function renderMiniCalendar() {
     });
 }
 
-// 同步迷你月曆與主視圖當前月份
+// 重新繪製迷你月曆（保持獨立月份，不自動跳回主視圖月份）
 function syncMiniCalendar() {
-    _miniCalDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     renderMiniCalendar();
 }
 
