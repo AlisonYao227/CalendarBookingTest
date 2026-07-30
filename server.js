@@ -444,8 +444,10 @@ app.post('/api/employee-leaves/batch', async (req, res) => {
                 const finalEndDate = item.endDate || item.leaveDate;
                 if (client) {
                     await client.query(`INSERT INTO employee_leaves (employee, leave_date, end_date, leave_type) VALUES ($1,$2,$3,$4)`, [item.employee, item.leaveDate, finalEndDate, item.leaveType || '']);
+                    ok++;
+                } else {
+                    ok++;
                 }
-                ok++;
             } catch (e) { fail++; }
         }
         if (client) await client.query('COMMIT');
