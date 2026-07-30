@@ -1420,10 +1420,12 @@ function renderEventsIntoColumn(columnElement, dateStr) {
         return true;
     });
     const timeGroup = {};
-    // 按開始時間分組
+    // 按開始時間分組（跨日結束日歸到 00:00 組）
     dayEvents.forEach(ev => {
-        if (!timeGroup[ev.startTime]) timeGroup[ev.startTime] = [];
-        timeGroup[ev.startTime].push(ev);
+        const isOnEnd = ev.endDate && ev.endDate === dateStr && ev.endDate !== ev.date;
+        const groupKey = isOnEnd ? '00:00' : ev.startTime;
+        if (!timeGroup[groupKey]) timeGroup[groupKey] = [];
+        timeGroup[groupKey].push(ev);
     });
 
     Object.values(timeGroup).forEach(group => {
@@ -1448,7 +1450,7 @@ function renderEventsIntoColumn(columnElement, dateStr) {
                     displayStart = '00:00';
                 }
                 if (isOnStart && ev.endDate && ev.endDate !== ev.date) {
-                    displayEnd = '23:30';
+                    displayEnd = '24:00';
                 }
                 const [sH, sM] = displayStart.split(':').map(Number);
                 const top = ((sH - startHour) * 60) + sM;
@@ -1530,7 +1532,9 @@ function renderEventsIntoColumn(columnElement, dateStr) {
             const hiddenCount = total - MAX_VERTICAL_SHOW;
 
             visibleList.forEach((ev, idx) => {
-                const [sH, sM] = ev.startTime.split(':').map(Number);
+                const isOnEnd = ev.endDate && ev.endDate === dateStr && ev.endDate !== ev.date;
+                const displayStart = isOnEnd ? '00:00' : ev.startTime;
+                const [sH, sM] = displayStart.split(':').map(Number);
                 const baseTop = ((sH - startHour) * 60) + sM;
                 const blockTop = baseTop + idx * itemHeight;
 
@@ -1557,7 +1561,7 @@ function renderEventsIntoColumn(columnElement, dateStr) {
                     white-space: nowrap;
                     text-overflow: ellipsis;
                 `;
-                evEl.innerHTML = `<strong>${ev.startTime}</strong> ${ev.name}｜${dispRoom}`;
+                evEl.innerHTML = `<strong>${displayStart}</strong> ${ev.name}｜${dispRoom}`;
                 evEl.onclick = (e) => {
                     e.stopPropagation();
                     const targetIndex = eventsData.findIndex(item => item === ev);
@@ -1569,7 +1573,9 @@ function renderEventsIntoColumn(columnElement, dateStr) {
             // 垂直模式聚合 +N 按鈕
             if (hiddenCount > 0) {
                 const baseEv = group[0];
-                const [sH, sM] = baseEv.startTime.split(':').map(Number);
+                const isEnd = baseEv.endDate && baseEv.endDate === dateStr && baseEv.endDate !== baseEv.date;
+                const baseStart = isEnd ? '00:00' : baseEv.startTime;
+                const [sH, sM] = baseStart.split(':').map(Number);
                 const baseTop = ((sH - startHour) * 60) + sM;
                 const moreTop = baseTop + MAX_VERTICAL_SHOW * itemHeight;
 
