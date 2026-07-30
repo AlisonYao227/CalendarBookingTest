@@ -501,7 +501,7 @@ function getFilteredData() {
                             totalSuccess++;
                         });
                         if (importList.length > 0) {
-                            try { const res = await fetch(`${API_BASE}/reservations/batch`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({list:importList}) }); const result = await res.json(); if (!result.ok) { totalSkip += importList.length; allSkipList.push("[預約]批量匯入失敗："+result.msg); } } catch(err) { totalSkip += importList.length; allSkipList.push("[預約]批量匯入失敗："+err.message); }
+                            try { const res = await fetch(`${API_BASE}/reservations/batch`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({list:importList}) }); const result = await res.json(); if (!result.ok) { totalSkip += importList.length; allSkipList.push("[預約]批量匯入失敗："+result.msg); } else if (result.fail > 0) { totalSuccess -= result.fail; totalSkip += result.fail; } } catch(err) { totalSkip += importList.length; allSkipList.push("[預約]批量匯入失敗："+err.message); }
                         }
 
                     } else if (headers.includes('標題') || headers.includes('開始日期')) {
@@ -572,7 +572,7 @@ function getFilteredData() {
                             totalSuccess++;
                         }
                         if (leaveList.length > 0) {
-                            try { const res = await fetch(`${API_BASE}/employee-leaves/batch`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({list:leaveList}) }); const result = await res.json(); if (!result.ok) { totalSkip += leaveList.length; allSkipList.push("[員工假期]批量匯入失敗："+result.msg); } } catch(err) { totalSkip += leaveList.length; allSkipList.push("[員工假期]批量匯入失敗："+err.message); }
+                            try { const res = await fetch(`${API_BASE}/employee-leaves/batch`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({list:leaveList}) }); const result = await res.json(); if (!result.ok) { totalSkip += leaveList.length; allSkipList.push("[員工假期]批量匯入失敗："+result.msg); } else if (result.fail > 0) { totalSuccess -= result.fail; totalSkip += result.fail; } } catch(err) { totalSkip += leaveList.length; allSkipList.push("[員工假期]批量匯入失敗："+err.message); }
                         }
                     }
                 for (const rName of allNewRooms) { try { const color = generateRandomRoomColor(); await fetch(`${API_BASE}/rooms`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name:rName,short:'',colorData:JSON.stringify(color)}) }); } catch(e) {} }
