@@ -146,6 +146,15 @@ app.post('/api/reservations', async (req, res) => {
     const { date, name, employee, room, startTime, endTime, endDate } = req.body;
     if (!date || !name || !employee || !room || !startTime || !endTime) return res.json({ ok: false, msg: "所有欄位皆為必填" });
     try {
+        const conflict = await query(
+            `SELECT id, employee FROM reservations WHERE room_name=$1 AND is_deleted=0
+             AND res_date <= $2 AND end_date >= $3
+             AND start_time < $4 AND end_time > $5`,
+            [room, endDate || date, date, endTime, startTime]
+        );
+        if (conflict.rows.length > 0) {
+            return res.json({ ok: false, msg: `該時段已被 ${conflict.rows[0].employee} 預約` });
+        }
         const r = await query(`INSERT INTO reservations (res_date,title,employee,room_name,start_time,end_time,end_date) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`, [date, name, employee, room, startTime, endTime, endDate || date]);
         const id = r.rows[0].id;
         await logOp('CREATE_RESERVATION', id, `新增: ${date} ${startTime}-${endTime} ${name} [${employee}] ${room}`, req.ip, { date, name, employee, room, startTime, endTime });
@@ -166,6 +175,15 @@ app.put('/api/reservations/:id', async (req, res) => {
     if (!date || !name || !employee || !room || !startTime || !endTime) return res.json({ ok: false, msg: "所有欄位皆為必填" });
     try {
         const old = await query(`SELECT * FROM reservations WHERE id=$1`, [id]);
+        const conflict = await query(
+            `SELECT id, employee FROM reservations WHERE room_name=$1 AND is_deleted=0 AND id!=$2
+             AND res_date <= $3 AND end_date >= $4
+             AND start_time < $5 AND end_time > $6`,
+            [room, id, endDate || date, date, endTime, startTime]
+        );
+        if (conflict.rows.length > 0) {
+            return res.json({ ok: false, msg: `該時段已被 ${conflict.rows[0].employee} 預約` });
+        }
         const r = await query(`UPDATE reservations SET res_date=$1,title=$2,employee=$3,room_name=$4,start_time=$5,end_time=$6,end_date=$7,update_at=CURRENT_TIMESTAMP WHERE id=$8 AND is_deleted=0 RETURNING id`, [date, name, employee, room, startTime, endTime, endDate || date, id]);
         if (r.rows.length === 0) return res.json({ ok: false, msg: "找不到該預約" });
         const d = old.rows[0] || {};
