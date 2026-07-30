@@ -226,8 +226,10 @@ app.post('/api/reservations/batch', async (req, res) => {
                     );
                     if (conflict.rows.length > 0) { fail++; continue; }
                     await client.query(`INSERT INTO reservations (res_date,title,employee,room_name,start_time,end_time,end_date) VALUES ($1,$2,$3,$4,$5,$6,$7)`, [item.date, item.name, item.employee, item.room, item.startTime, item.endTime, item.endDate || item.date]);
+                    ok++;
+                } else {
+                    ok++;
                 }
-                ok++;
             } catch (e) { fail++; }
         }
         if (client) await client.query('COMMIT');
