@@ -1045,6 +1045,10 @@ document.querySelectorAll('.short-input').forEach(input=>{
             const isAllDay = document.getElementById('todoAllDay').checked;
             if (!title || !startDate || !endDate) return alert('請填寫標題和日期');
             if (endDate < startDate) return alert('結束日期不能早於開始日期');
+            if (!room || !employee) {
+                const msg = !room && !employee ? '未指定房間及員工' : !room ? '未指定房間' : '未指定員工';
+                if (!confirm(`${msg}，是否繼續？`)) return;
+            }
 
             todoBusy = true;
             addTodoBtn.disabled = true;
