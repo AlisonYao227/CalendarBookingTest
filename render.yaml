@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: calendar-booking
+    name: calendar-booking-test
     runtime: node
     plan: free
     buildCommand: npm install
