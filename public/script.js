@@ -497,7 +497,7 @@ function getFilteredData() {
                                 return ev.room === roomName && (dateStr+'T'+sTime) < (evEnd+'T'+ev.endTime) && (importEndDate+'T'+eTime) > (ev.date+'T'+ev.startTime);
                             });
                             if (isConflict) { totalSkip++; allSkipList.push(`[預約]第${excelRow}行「${name}」：${dateStr} ${roomName} 時段衝突`); return; }
-                            importList.push({ date: dateStr, endDate: importEndDate, name: String(name).trim(), employee: empName, room: roomName, startTime: sTime, endTime: eTime });
+                            importList.push({ date: dateStr, endDate: importEndDate, name: String(name).trim(), employee: empName, room: roomName, startTime: sTime, endTime: eTime, row: excelRow });
                             totalSuccess++;
                         });
                         if (importList.length > 0) {

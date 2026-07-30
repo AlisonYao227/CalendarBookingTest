@@ -225,13 +225,13 @@ app.post('/api/reservations/batch', async (req, res) => {
                          AND start_time < $4 AND end_time > $5`,
                         [item.room, item.endDate || item.date, item.date, item.endTime, item.startTime]
                     );
-                    if (conflict.rows.length > 0) { fail++; failDetails.push(`「${item.name}」${item.date} ${item.startTime}-${item.endTime} ${item.room} 時段已被 ${conflict.rows[0].employee} 預約`); continue; }
+                    if (conflict.rows.length > 0) { fail++; failDetails.push(`第${item.row||'?'}行「${item.name}」${item.date} ${item.startTime}-${item.endTime} ${item.room} 時段已被 ${conflict.rows[0].employee} 預約`); continue; }
                     await client.query(`INSERT INTO reservations (res_date,title,employee,room_name,start_time,end_time,end_date) VALUES ($1,$2,$3,$4,$5,$6,$7)`, [item.date, item.name, item.employee, item.room, item.startTime, item.endTime, item.endDate || item.date]);
                     ok++;
                 } else {
                     ok++;
                 }
-            } catch (e) { fail++; failDetails.push(`「${item.name}」${item.date}: ${e.message}`); }
+            } catch (e) { fail++; failDetails.push(`第${item.row||'?'}行「${item.name}」${item.date}: ${e.message}`); }
         }
         if (client) await client.query('COMMIT');
         await logOp('BATCH_IMPORT', null, `匯入: 成功${ok} 失敗${fail}`, req.ip);
