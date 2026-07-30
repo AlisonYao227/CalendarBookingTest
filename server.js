@@ -218,6 +218,13 @@ app.post('/api/reservations/batch', async (req, res) => {
         for (const item of list) {
             try {
                 if (client) {
+                    const conflict = await client.query(
+                        `SELECT id FROM reservations WHERE room_name=$1 AND is_deleted=0
+                         AND res_date <= $2 AND end_date >= $3
+                         AND start_time < $4 AND end_time > $5`,
+                        [item.room, item.endDate || item.date, item.date, item.endTime, item.startTime]
+                    );
+                    if (conflict.rows.length > 0) { fail++; continue; }
                     await client.query(`INSERT INTO reservations (res_date,title,employee,room_name,start_time,end_time,end_date) VALUES ($1,$2,$3,$4,$5,$6,$7)`, [item.date, item.name, item.employee, item.room, item.startTime, item.endTime, item.endDate || item.date]);
                 }
                 ok++;
