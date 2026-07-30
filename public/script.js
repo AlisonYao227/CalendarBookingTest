@@ -975,6 +975,7 @@ document.querySelectorAll('.short-input').forEach(input=>{
         newRoomInput.value = "";
         await loadAllData();
         renderSettingLists();
+        newRoomInput.focus();
     } catch(e) { alert("新增失敗：" + e.message); }
 }
     }
@@ -996,6 +997,7 @@ document.querySelectorAll('.short-input').forEach(input=>{
             newEmpInput.value = "";
             await loadAllData();
             renderSettingLists();
+            newEmpInput.focus();
         } catch(e) { alert("新增失敗：" + e.message); }
     }
 }
