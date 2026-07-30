@@ -146,11 +146,12 @@ app.post('/api/reservations', async (req, res) => {
     const { date, name, employee, room, startTime, endTime, endDate } = req.body;
     if (!date || !name || !employee || !room || !startTime || !endTime) return res.json({ ok: false, msg: "所有欄位皆為必填" });
     try {
+        const newEnd = endDate || date;
         const conflict = await query(
             `SELECT id, employee FROM reservations WHERE room_name=$1 AND is_deleted=0
-             AND res_date <= $2 AND end_date >= $3
-             AND start_time < $4 AND end_time > $5`,
-            [room, endDate || date, date, endTime, startTime]
+             AND (res_date || ' ' || start_time)::timestamp < ($2 || ' ' || $3)::timestamp
+             AND ($4 || ' ' || $5)::timestamp < (end_date || ' ' || end_time)::timestamp`,
+            [room, newEnd, endTime, date, startTime]
         );
         if (conflict.rows.length > 0) {
             return res.json({ ok: false, msg: `該時段已被 ${conflict.rows[0].employee} 預約` });
@@ -175,11 +176,12 @@ app.put('/api/reservations/:id', async (req, res) => {
     if (!date || !name || !employee || !room || !startTime || !endTime) return res.json({ ok: false, msg: "所有欄位皆為必填" });
     try {
         const old = await query(`SELECT * FROM reservations WHERE id=$1`, [id]);
+        const newEnd = endDate || date;
         const conflict = await query(
             `SELECT id, employee FROM reservations WHERE room_name=$1 AND is_deleted=0 AND id!=$2
-             AND res_date <= $3 AND end_date >= $4
-             AND start_time < $5 AND end_time > $6`,
-            [room, id, endDate || date, date, endTime, startTime]
+             AND (res_date || ' ' || start_time)::timestamp < ($3 || ' ' || $4)::timestamp
+             AND ($5 || ' ' || $6)::timestamp < (end_date || ' ' || end_time)::timestamp`,
+            [room, id, newEnd, endTime, date, startTime]
         );
         if (conflict.rows.length > 0) {
             return res.json({ ok: false, msg: `該時段已被 ${conflict.rows[0].employee} 預約` });
@@ -219,11 +221,12 @@ app.post('/api/reservations/batch', async (req, res) => {
         for (const item of list) {
             try {
                 if (client) {
+                    const itemEnd = item.endDate || item.date;
                     const conflict = await client.query(
                         `SELECT employee FROM reservations WHERE room_name=$1 AND is_deleted=0
-                         AND res_date <= $2 AND end_date >= $3
-                         AND start_time < $4 AND end_time > $5`,
-                        [item.room, item.endDate || item.date, item.date, item.endTime, item.startTime]
+                         AND (res_date || ' ' || start_time)::timestamp < ($2 || ' ' || $3)::timestamp
+                         AND ($4 || ' ' || $5)::timestamp < (end_date || ' ' || end_time)::timestamp`,
+                        [item.room, itemEnd, item.endTime, item.date, item.startTime]
                     );
                     if (conflict.rows.length > 0) { fail++; failDetails.push(`第${item.row||'?'}行「${item.name}」${item.date} ${item.startTime}-${item.endTime} ${item.room} 時段已被 ${conflict.rows[0].employee} 預約`); continue; }
                     await client.query(`INSERT INTO reservations (res_date,title,employee,room_name,start_time,end_time,end_date) VALUES ($1,$2,$3,$4,$5,$6,$7)`, [item.date, item.name, item.employee, item.room, item.startTime, item.endTime, item.endDate || item.date]);
