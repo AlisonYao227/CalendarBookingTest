@@ -1043,11 +1043,15 @@ document.querySelectorAll('.short-input').forEach(input=>{
             const room = document.getElementById('todoRoom').value;
             const employee = document.getElementById('todoEmployee').value;
             const isAllDay = document.getElementById('todoAllDay').checked;
+            const selectedDays = Array.from(document.querySelectorAll('.todo-dow:checked')).map(cb => parseInt(cb.value));
             if (!title || !startDate || !endDate) return alert('請填寫標題和日期');
             if (endDate < startDate) return alert('結束日期不能早於開始日期');
             if (!room || !employee) {
                 const msg = !room && !employee ? '未指定房間及員工' : !room ? '未指定房間' : '未指定員工';
                 if (!confirm(`${msg}，是否繼續？`)) return;
+            }
+            if (!isAllDay && selectedDays.length === 0) {
+                if (!confirm('未指定全日及重複星期，將僅建立單一筆待辦事項，是否繼續？')) return;
             }
 
             todoBusy = true;
@@ -1067,7 +1071,6 @@ document.querySelectorAll('.short-input').forEach(input=>{
                 } else {
                     // Add mode
                     addTodoBtn.textContent = '新增中...';
-                    const selectedDays = Array.from(document.querySelectorAll('.todo-dow:checked')).map(cb => parseInt(cb.value));
 
                     if (selectedDays.length === 0) {
                         const res = await fetch(`${API_BASE}/todos`, {
