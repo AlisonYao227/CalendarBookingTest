@@ -448,10 +448,12 @@ function getFilteredData() {
     const importFileInput = document.getElementById('importFileInput');
     const importTipBtn = document.querySelector('.import-tip-btn');
 
+    let importArmed = false;
     if(importBtn){
     importBtn.onclick = () => {
         // 每次點擊匯入，清空上一次的跳過記錄
     currentImportSkipList = [];
+        importArmed = true;
         importFileInput.click();
     };
     }
@@ -478,6 +480,8 @@ function getFilteredData() {
     let lastImportFp = '';
     let importLastTime = 0;
     importFileInput.addEventListener('change', async (e) => {
+        if (!importArmed) { console.warn('[IMPORT] 已阻擋非使用者觸發的檔案變更'); return; }
+        importArmed = false;
         const file = e.target.files[0];
         if (!file) return;
         const fp = `${file.name}|${file.size}|${file.lastModified}`;
@@ -494,7 +498,7 @@ function getFilteredData() {
                 const workbook = XLSX.read(data, { type: 'array' });
                 await loadAllData();
                 
-                let totalSuccess = 0, totalSkip = 0, newRoomCount = 0, newEmpCount = 0, totalNoteFilled = 0;
+                let totalSuccess = 0, totalSkip = 0, newRoomCount = 0, newEmpCount = 0;
                 const allSkipList = [];
                 const allNewRooms = new Set();
                 const allNewEmps = new Set();
@@ -546,21 +550,12 @@ function getFilteredData() {
                                 const evEnd = ev.endDate || ev.date;
                                 return ev.room === roomName && (dateStr+'T'+sTime) < (evEnd+'T'+ev.endTime) && (importEndDate+'T'+eTime) > (ev.date+'T'+ev.startTime);
                             });
-                            if (isConflict) {
-                                const exactMatch = eventsData.find(ev => {
-                                    const evEnd = ev.endDate || ev.date;
-                                    return ev.room === roomName && ev.date === dateStr && String(ev.name).trim() === String(name).trim()
-                                        && ev.employee === empName && ev.startTime === sTime && ev.endTime === eTime && evEnd === importEndDate;
-                                });
-                                if (!(exactMatch && !exactMatch.note && note)) {
-                                    totalSkip++; allSkipList.push(`[預約]第${excelRow}行「${name}」：${dateStr} ${roomName} 時段衝突`); return;
-                                }
-                            }
+                            if (isConflict) { totalSkip++; allSkipList.push(`[預約]第${excelRow}行「${name}」：${dateStr} ${roomName} 時段衝突`); return; }
                             importList.push({ date: dateStr, endDate: importEndDate, name: String(name).trim(), employee: empName, room: roomName, startTime: sTime, endTime: eTime, note, row: excelRow });
                             totalSuccess++;
                         });
                         if (importList.length > 0) {
-                            try { const res = await fetch(`${API_BASE}/reservations/batch`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({list:importList}) }); const result = await res.json(); if (!result.ok) { totalSkip += importList.length; allSkipList.push("[預約]批量匯入失敗："+result.msg); } else { if (result.noteFilled) totalNoteFilled += result.noteFilled; if (result.fail > 0) { totalSuccess -= result.fail; totalSkip += result.fail; if (result.failDetails) result.failDetails.forEach(d => allSkipList.push("[預約]"+d)); } } } catch(err) { totalSkip += importList.length; allSkipList.push("[預約]批量匯入失敗："+err.message); }
+                            try { const res = await fetch(`${API_BASE}/reservations/batch`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({list:importList}) }); const result = await res.json(); if (!result.ok) { totalSkip += importList.length; allSkipList.push("[預約]批量匯入失敗："+result.msg); } else if (result.fail > 0) { totalSuccess -= result.fail; totalSkip += result.fail; if (result.failDetails) result.failDetails.forEach(d => allSkipList.push("[預約]"+d)); } } catch(err) { totalSkip += importList.length; allSkipList.push("[預約]批量匯入失敗："+err.message); }
                         }
 
                     } else if (headers.includes('標題') || headers.includes('開始日期')) {
@@ -643,7 +638,6 @@ function getFilteredData() {
                 
                 currentImportSkipList = [...allSkipList];
                 let resultMsg = `匯入完成！\n✅ 成功：${totalSuccess} 條\n⚠️ 跳過：${totalSkip} 條`;
-                if (totalNoteFilled > 0) resultMsg += `\n📝 更新備註：${totalNoteFilled} 條`;
                 if (newRoomCount > 0) resultMsg += `\n🏠 自動新增房間：${newRoomCount} 個`;
                 if (newEmpCount > 0) resultMsg += `\n👤 自動新增員工：${newEmpCount} 位`;
                 if (allSkipList.length > 0) {
