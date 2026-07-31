@@ -193,6 +193,9 @@ function showPasswordPrompt(message){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    if (window.__CAL_BOOKING_INIT_DONE__) { console.warn('[INIT] 已初始化過，跳過重複執行'); return; }
+    window.__CAL_BOOKING_INIT_DONE__ = true;
+    console.log('[IMPORT] script version v20260731c (importArmed gate)');
     loadAllData();
     renderAnnouncement();
     initFilterDropdowns();
