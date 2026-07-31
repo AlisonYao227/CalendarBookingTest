@@ -327,7 +327,7 @@ if(copyNoteBtn){
         const text = document.getElementById('noteText').innerText;
         const ok = await copyTextToClipboard(text);
         copyNoteBtn.textContent = ok ? '已複製！' : '複製失敗，請手動選取文字複製';
-        setTimeout(() => { copyNoteBtn.textContent = '複製備註'; }, 2000);
+        setTimeout(() => { copyNoteBtn.textContent = '備註'; }, 2000);
     };
 }
 
