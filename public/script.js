@@ -639,28 +639,27 @@ function getFilteredData() {
                             try { const res = await fetch(`${API_BASE}/employee-leaves/batch`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({list:leaveList}) }); const result = await res.json(); if (!result.ok) { totalSkip += leaveList.length; allSkipList.push("[員工假期]批量匯入失敗："+result.msg); } else if (result.fail > 0) { totalSuccess -= result.fail; totalSkip += result.fail; } } catch(err) { totalSkip += leaveList.length; allSkipList.push("[員工假期]批量匯入失敗："+err.message); }
                         }
                     }
-                for (const rName of allNewRooms) { try { const color = generateRandomRoomColor(); await fetch(`${API_BASE}/rooms`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name:rName,short:'',colorData:JSON.stringify(color)}) }); } catch(e) {} }
-                for (const eName of allNewEmps) { try { await fetch(`${API_BASE}/employees`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name:eName}) }); } catch(e) {} }
+            }
+            for (const rName of allNewRooms) { try { const color = generateRandomRoomColor(); await fetch(`${API_BASE}/rooms`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name:rName,short:'',colorData:JSON.stringify(color)}) }); } catch(e) {} }
+            for (const eName of allNewEmps) { try { await fetch(`${API_BASE}/employees`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name:eName}) }); } catch(e) {} }
 
-                await loadAllData();
-                await loadHolidays(new Date().getFullYear());
-                updateView();
-                
-                currentImportSkipList = [...allSkipList];
-                let resultMsg = `匯入完成！\n✅ 成功：${totalSuccess} 條\n⚠️ 跳過：${totalSkip} 條`;
-                if (newRoomCount > 0) resultMsg += `\n🏠 自動新增房間：${newRoomCount} 個`;
-                if (newEmpCount > 0) resultMsg += `\n👤 自動新增員工：${newEmpCount} 位`;
-                if (allSkipList.length > 0) {
-                    resultMsg += totalSuccess === 0
-                        ? `\n\n⚠️ 所有數據均跳過，極可能Excel欄位格式不匹配！\n點擊匯入旁邊「i」小按鈕查看完整錯誤原因`
-                        : `\n\n點擊匯入旁邊「i」小按鈕可查看全部跳過異常明細`;
-                }
-                resultMsg += `\n\n[DEBUG runId=${runId} v20260731d]`;
-                console.log(`[IMPORT] runId=${runId} 顯示結果 alert：成功=${totalSuccess} 跳過=${totalSkip}`);
-                alert(resultMsg);
+            await loadAllData();
+            await loadHolidays(new Date().getFullYear());
+            updateView();
 
-                }
-            } catch (err) {
+            currentImportSkipList = [...allSkipList];
+            let resultMsg = `匯入完成！\n✅ 成功：${totalSuccess} 條\n⚠️ 跳過：${totalSkip} 條`;
+            if (newRoomCount > 0) resultMsg += `\n🏠 自動新增房間：${newRoomCount} 個`;
+            if (newEmpCount > 0) resultMsg += `\n👤 自動新增員工：${newEmpCount} 位`;
+            if (allSkipList.length > 0) {
+                resultMsg += totalSuccess === 0
+                    ? `\n\n⚠️ 所有數據均跳過，極可能Excel欄位格式不匹配！\n點擊匯入旁邊「i」小按鈕查看完整錯誤原因`
+                    : `\n\n點擊匯入旁邊「i」小按鈕可查看全部跳過異常明細`;
+            }
+            resultMsg += `\n\n[DEBUG runId=${runId} v20260731e]`;
+            console.log(`[IMPORT] runId=${runId} 顯示結果 alert：成功=${totalSuccess} 跳過=${totalSkip}`);
+            alert(resultMsg);
+        } catch (err) {
                 console.error(err);
                 alert("匯入失敗：檔案格式錯誤，請確認是標準 .xlsx 檔案");
             } finally {
