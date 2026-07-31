@@ -482,7 +482,10 @@ function getFilteredData() {
     let importProcessing = false;
     let lastImportFp = '';
     let importLastTime = 0;
+    let importRunId = 0;
     importFileInput.addEventListener('change', async (e) => {
+        const now = Date.now();
+        console.log(`[IMPORT] change 觸發 armed=${importArmed} time=${now} lastTime=${importLastTime} diff=${now-importLastTime}`);
         if (!importArmed) { console.warn('[IMPORT] 已阻擋非使用者觸發的檔案變更'); return; }
         importArmed = false;
         const file = e.target.files[0];
@@ -493,10 +496,14 @@ function getFilteredData() {
         lastImportFp = fp;
         importLastTime = Date.now();
         importProcessing = true;
+        importRunId++;
+        const runId = importRunId;
+        console.log(`[IMPORT] 開始處理 runId=${runId} fp=${fp}`);
         
         const reader = new FileReader();
         reader.onload = async function(evt) {
             try {
+                console.log(`[IMPORT] runId=${runId} 檔案讀取完成，開始解析`);
                 const data = new Uint8Array(evt.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 await loadAllData();
@@ -648,6 +655,8 @@ function getFilteredData() {
                         ? `\n\n⚠️ 所有數據均跳過，極可能Excel欄位格式不匹配！\n點擊匯入旁邊「i」小按鈕查看完整錯誤原因`
                         : `\n\n點擊匯入旁邊「i」小按鈕可查看全部跳過異常明細`;
                 }
+                resultMsg += `\n\n[DEBUG runId=${runId} v20260731d]`;
+                console.log(`[IMPORT] runId=${runId} 顯示結果 alert：成功=${totalSuccess} 跳過=${totalSkip}`);
                 alert(resultMsg);
 
                 }
