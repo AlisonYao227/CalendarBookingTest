@@ -474,9 +474,12 @@ function getFilteredData() {
     };
 }
 
+    let importProcessing = false;
     importFileInput.addEventListener('change', async (e) => {
+        if (importProcessing) return;
         const file = e.target.files[0];
         if (!file) return;
+        importProcessing = true;
         
         const reader = new FileReader();
         reader.onload = async function(evt) {
@@ -485,7 +488,7 @@ function getFilteredData() {
                 const workbook = XLSX.read(data, { type: 'array' });
                 await loadAllData();
                 
-                let totalSuccess = 0, totalSkip = 0, newRoomCount = 0, newEmpCount = 0;
+                let totalSuccess = 0, totalSkip = 0, newRoomCount = 0, newEmpCount = 0, totalNoteFilled = 0;
                 const allSkipList = [];
                 const allNewRooms = new Set();
                 const allNewEmps = new Set();
@@ -551,7 +554,7 @@ function getFilteredData() {
                             totalSuccess++;
                         });
                         if (importList.length > 0) {
-                            try { const res = await fetch(`${API_BASE}/reservations/batch`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({list:importList}) }); const result = await res.json(); if (!result.ok) { totalSkip += importList.length; allSkipList.push("[預約]批量匯入失敗："+result.msg); } else if (result.fail > 0) { totalSuccess -= result.fail; totalSkip += result.fail; if (result.failDetails) result.failDetails.forEach(d => allSkipList.push("[預約]"+d)); } } catch(err) { totalSkip += importList.length; allSkipList.push("[預約]批量匯入失敗："+err.message); }
+                            try { const res = await fetch(`${API_BASE}/reservations/batch`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({list:importList}) }); const result = await res.json(); if (!result.ok) { totalSkip += importList.length; allSkipList.push("[預約]批量匯入失敗："+result.msg); } else { if (result.noteFilled) totalNoteFilled += result.noteFilled; if (result.fail > 0) { totalSuccess -= result.fail; totalSkip += result.fail; if (result.failDetails) result.failDetails.forEach(d => allSkipList.push("[預約]"+d)); } } } catch(err) { totalSkip += importList.length; allSkipList.push("[預約]批量匯入失敗："+err.message); }
                         }
 
                     } else if (headers.includes('標題') || headers.includes('開始日期')) {
@@ -634,6 +637,7 @@ function getFilteredData() {
                 
                 currentImportSkipList = [...allSkipList];
                 let resultMsg = `匯入完成！\n✅ 成功：${totalSuccess} 條\n⚠️ 跳過：${totalSkip} 條`;
+                if (totalNoteFilled > 0) resultMsg += `\n📝 更新備註：${totalNoteFilled} 條`;
                 if (newRoomCount > 0) resultMsg += `\n🏠 自動新增房間：${newRoomCount} 個`;
                 if (newEmpCount > 0) resultMsg += `\n👤 自動新增員工：${newEmpCount} 位`;
                 if (allSkipList.length > 0) {
@@ -647,10 +651,12 @@ function getFilteredData() {
             } catch (err) {
                 console.error(err);
                 alert("匯入失敗：檔案格式錯誤，請確認是標準 .xlsx 檔案");
+            } finally {
+                importFileInput.value = "";
+                importProcessing = false;
             }
-            
-            importFileInput.value = "";
         };
+        reader.onerror = () => { importFileInput.value = ""; importProcessing = false; };
         reader.readAsArrayBuffer(file);
     });
 

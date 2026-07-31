@@ -215,7 +215,7 @@ app.post('/api/reservations/batch', async (req, res) => {
     const { list } = req.body;
     if (!Array.isArray(list) || list.length === 0) return res.json({ ok: false, msg: "匯入清單為空" });
     const client = pool ? await pool.connect() : null;
-    let ok = 0, fail = 0;
+    let ok = 0, fail = 0, noteFilled = 0;
     const failDetails = [];
     try {
         if (client) await client.query('BEGIN');
@@ -238,6 +238,7 @@ app.post('/api/reservations/batch', async (req, res) => {
                         );
                         if (exact.rows.length > 0 && !exact.rows[0].note && item.note) {
                             await client.query(`UPDATE reservations SET note=$1, update_at=CURRENT_TIMESTAMP WHERE id=$2`, [item.note, exact.rows[0].id]);
+                            noteFilled++;
                             ok++;
                             continue;
                         }
@@ -252,7 +253,7 @@ app.post('/api/reservations/batch', async (req, res) => {
         }
         if (client) await client.query('COMMIT');
         await logOp('BATCH_IMPORT', null, `匯入: 成功${ok} 失敗${fail}`, req.ip);
-        res.json({ ok: true, success: ok, fail, failDetails });
+        res.json({ ok: true, success: ok, fail, failDetails, noteFilled });
     } catch (err) { if (client) await client.query('ROLLBACK'); res.json({ ok: false, msg: err.message }); }
     finally { if (client) client.release(); }
 });
