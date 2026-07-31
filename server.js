@@ -230,7 +230,6 @@ app.post('/api/reservations/batch', async (req, res) => {
                         [item.room, itemEnd, item.endTime, item.date, item.startTime]
                     );
                     if (conflict.rows.length > 0) {
-                        const itemEnd = item.endDate || item.date;
                         const exact = await client.query(
                             `SELECT id, COALESCE(note,'') as note FROM reservations WHERE room_name=$1 AND is_deleted=0
                              AND res_date=$2 AND title=$3 AND employee=$4 AND start_time=$5 AND end_time=$6 AND end_date=$7 LIMIT 1`,
