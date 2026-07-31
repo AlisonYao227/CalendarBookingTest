@@ -292,6 +292,45 @@ if(btnDeleteDetail){
         }
     };
 }
+// 詳情視窗內的 查看備註
+const btnViewNote = document.getElementById('btnViewNote');
+if(btnViewNote){
+    btnViewNote.onclick = () => {
+        const ev = eventsData[currentViewIndex];
+        document.getElementById('noteText').innerText = (ev && ev.note) ? ev.note : '（無備註）';
+        document.getElementById('noteModal').classList.add('active');
+    };
+}
+
+// 複製備註（含 Windows/非 HTTPS 環境 fallback）
+function copyTextToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text).then(() => true, () => false);
+    }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.top = '-9999px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    let success = false;
+    try { success = document.execCommand('copy'); } catch(e) { success = false; }
+    document.body.removeChild(ta);
+    return Promise.resolve(success);
+}
+const copyNoteBtn = document.getElementById('copyNoteBtn');
+if(copyNoteBtn){
+    copyNoteBtn.onclick = async () => {
+        const text = document.getElementById('noteText').innerText;
+        const ok = await copyTextToClipboard(text);
+        copyNoteBtn.textContent = ok ? '已複製！' : '複製失敗，請手動選取文字複製';
+        setTimeout(() => { copyNoteBtn.textContent = '複製備註'; }, 2000);
+    };
+}
+
 // 一次性載入預約、房間、員工全域數據
 async function loadAllData() {
     showLoading();
@@ -470,6 +509,7 @@ function getFilteredData() {
                             else if (key === '房間' || key === 'room') headerMap.room = i;
                             else if (key === '開始時間' || key === 'startTime' || key === 'start') headerMap.startTime = i;
                             else if (key === '結束時間' || key === 'endTime' || key === 'end') headerMap.endTime = i;
+                            else if (key === '備註' || key === 'note') headerMap.note = i;
                         });
                         const importList = [];
                         rawData.slice(1).forEach((row, rawIdx) => {
@@ -478,6 +518,7 @@ function getFilteredData() {
                             const get = (key) => headerMap[key] !== undefined ? row[headerMap[key]] : undefined;
                             const dateRaw = get('date'); const name = get('name'); const employee = get('employee');
                             const room = get('room'); const startRaw = get('startTime'); const endRaw = get('endTime');
+                            const note = headerMap.note !== undefined ? String(row[headerMap.note] ?? '').trim() : '';
                             if (dateRaw === undefined || !name || !employee || !room || startRaw === undefined || endRaw === undefined) {
                                 totalSkip++; allSkipList.push(`[預約]第${excelRow}行：欄位不全`); return;
                             }
@@ -497,7 +538,7 @@ function getFilteredData() {
                                 return ev.room === roomName && (dateStr+'T'+sTime) < (evEnd+'T'+ev.endTime) && (importEndDate+'T'+eTime) > (ev.date+'T'+ev.startTime);
                             });
                             if (isConflict) { totalSkip++; allSkipList.push(`[預約]第${excelRow}行「${name}」：${dateStr} ${roomName} 時段衝突`); return; }
-                            importList.push({ date: dateStr, endDate: importEndDate, name: String(name).trim(), employee: empName, room: roomName, startTime: sTime, endTime: eTime, row: excelRow });
+                            importList.push({ date: dateStr, endDate: importEndDate, name: String(name).trim(), employee: empName, room: roomName, startTime: sTime, endTime: eTime, note, row: excelRow });
                             totalSuccess++;
                         });
                         if (importList.length > 0) {
@@ -1634,6 +1675,8 @@ function showEventDetails(index) {
     document.getElementById('viewEventRoom').innerText = ev.room;
     document.querySelector('#viewEventEmployee span').innerText = ev.employee;
     document.getElementById('detailBar').style.backgroundColor = style.border;
+    const noteWrap = document.getElementById('viewEventNoteWrap');
+    if (noteWrap) noteWrap.style.display = ev.note ? 'block' : 'none';
     viewDetailModal.classList.add('active');
 }
 
@@ -1737,6 +1780,7 @@ function openBookingForm(dateStr, index = -1) {
         if(roomList.length > 0){
             roomSelect.value = roomList[0].name;
         }
+        document.getElementById("eventNote").value = "";
     } else {
         const ev = eventsData[index];
         formTitle.innerText = `編輯預約 (${dateStr})`;
@@ -1744,6 +1788,7 @@ function openBookingForm(dateStr, index = -1) {
         document.getElementById("employeeName").value = ev.employee;
         document.getElementById("startTime").value = ev.startTime;
         document.getElementById("endTime").value = ev.endTime;
+        document.getElementById("eventNote").value = ev.note || '';
 
         // 回填房間下拉
         const optMatch = Array.from(roomSelect.options).find(o => o.value === ev.room);
@@ -1834,6 +1879,7 @@ bookBtn.onclick = async (e) => {
     const startTime = cleanTime(startTimeRaw);
     const endTime = cleanTime(endTimeRaw);
     const date = cleanStr(selectedDateStr);
+    const note = document.getElementById("eventNote").value.trim();
     console.log("[BOOK] cleaned:", {name, employee, room, startTime, endTime, date});
 
     // 3. 基礎空值攔截
@@ -1865,7 +1911,8 @@ bookBtn.onclick = async (e) => {
         employee: employee,
         room: room,
         startTime: startTime,
-        endTime: endTime
+        endTime: endTime,
+        note: note
     };
     console.log("[BOOK] payload:", JSON.stringify(newEv));
 
@@ -2005,10 +2052,10 @@ function exportExcel(range){
     const book = XLSX.utils.book_new();
 
     // Sheet 1: 預約（僅預約，不含待辦事項與員工假期；結束日期由系統依時間自動判斷）
-    const resData = [["日期","活動名稱","預約員工","房間","開始時間","結束時間"]];
+    const resData = [["日期","活動名稱","預約員工","房間","開始時間","結束時間","備註"]];
     data.forEach(ev=>{
         if (ev._type) return;
-        resData.push([ev.date, ev.name, ev.employee, ev.room, ev.startTime, ev.endTime])
+        resData.push([ev.date, ev.name, ev.employee, ev.room, ev.startTime, ev.endTime, ev.note || ''])
     })
     XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(resData), "預約");
 

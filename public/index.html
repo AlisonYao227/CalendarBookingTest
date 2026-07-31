@@ -280,7 +280,27 @@
         <p id="viewEventTime">時間</p>
         <p id="viewEventRoom" class="detail-room-tag">房間</p>
         <p id="viewEventEmployee" style="color: #666;">預約同事：<span></span></p>
+        <p id="viewEventNoteWrap" style="display:none;margin-top:10px;">
+          <button id="btnViewNote" class="btn-view-note">查看備註</button>
+        </p>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="noteModal">
+  <div class="add-event-wrapper" style="width:480px;max-width:90vw;">
+    <div class="modal-header">
+      <h3>備註</h3>
+      <div class="header-right">
+      <button class="btn-close-view" title="Close">
+        <i class="fa-solid fa-xmark"></i>
+    </button>
+    </div>
+    </div>
+    <div class="add-event-body">
+      <div id="noteText" class="note-text"></div>
+      <button id="copyNoteBtn" class="btn-add-main" style="width:100%;">複製備註</button>
     </div>
   </div>
 </div>
@@ -458,11 +478,14 @@
     </select>
   </div>
 </div>
+      <div class="input-group">
+  <label>備註（選填，不會顯示在月曆上）</label>
+  <textarea id="eventNote" rows="2" placeholder="例如：會議 Zoom 連結"></textarea>
+</div>
       <button class="btn-book">確認預約</button>
     </div>
   </div>
 </div>
-
   <!-- 代辦事項彈窗 -->
   <div class="modal-overlay" id="todosModal">
     <div class="add-event-wrapper" style="width:560px;max-width:90vw;">
