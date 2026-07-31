@@ -475,10 +475,16 @@ function getFilteredData() {
 }
 
     let importProcessing = false;
+    let lastImportFp = '';
+    let importLastTime = 0;
     importFileInput.addEventListener('change', async (e) => {
-        if (importProcessing) return;
         const file = e.target.files[0];
         if (!file) return;
+        const fp = `${file.name}|${file.size}|${file.lastModified}`;
+        if (importProcessing) { console.warn('[IMPORT] 已阻擋重複觸發（處理中）:', fp); return; }
+        if (fp === lastImportFp && Date.now() - importLastTime < 1500) { console.warn('[IMPORT] 已阻擋短時間內相同檔案重複觸發:', fp); return; }
+        lastImportFp = fp;
+        importLastTime = Date.now();
         importProcessing = true;
         
         const reader = new FileReader();
