@@ -68,6 +68,7 @@ let eventsData = [];
 let selectedDateStr = ""; 
 let currentViewIndex = -1; // 用於追蹤當前查看的事件索引
 let currentImportSkipList = [];
+let currentImportInfoList = [];
 
 // 新增：回收站（從後端載入 is_deleted=1 的房間）
 let trashRoomList = [];
@@ -454,8 +455,9 @@ function getFilteredData() {
     let importArmed = false;
     if(importBtn){
     importBtn.onclick = () => {
-        // 每次點擊匯入，清空上一次的跳過記錄
+        // 每次點擊匯入，清空上一次的跳過與提醒記錄
     currentImportSkipList = [];
+    currentImportInfoList = [];
         importArmed = true;
         importFileInput.click();
     };
@@ -466,6 +468,12 @@ function getFilteredData() {
         e.stopPropagation();
         // 固定前置格式說明，每次點擊都顯示
         let tipText = "【Excel匯入格式規範】\n支援多Sheet匯入，系統會自動偵測每個Sheet的欄位：\n\n📋 Sheet 1「預約」欄位：日期、活動名稱、預約員工、房間、開始時間、結束時間（跨日預約結束時間早於開始時間時自動視為隔日結束）\n📋 Sheet 2「待辦事項」欄位：標題、開始日期、結束日期、開始時間、結束時間、房間、負責人、全日\n📋 Sheet 3「公眾假期」由系統自動抓取，無需匯入\n📋 Sheet 4「員工假期」欄位：員工姓名、開始日期、結束日期(同日=單日)、假期類型(選填)\n\n時間格式：09:00、23:30\n日期格式：2026-01-15\n\n";
+
+        if(currentImportInfoList.length > 0){
+            tipText += "=== 本次匯入資訊提醒 ===\n\n";
+            tipText += currentImportInfoList.join("\n");
+            tipText += "\n\n";
+        }
 
         if(currentImportSkipList.length > 0){
             // 有異常：規範 + 完整錯誤清單
@@ -510,6 +518,8 @@ function getFilteredData() {
                 
                 let totalSuccess = 0, totalSkip = 0, newRoomCount = 0, newEmpCount = 0;
                 const allSkipList = [];
+                const allInfoNotes = [];
+                let todoDataRowsFound = false;
                 const allNewRooms = new Set();
                 const allNewEmps = new Set();
 
@@ -570,6 +580,7 @@ function getFilteredData() {
 
                     } else if (headers.includes('標題') || headers.includes('開始日期')) {
                         // === TODO SHEET ===
+                        todoDataRowsFound = true;
                         const headerMap = {};
                         headerRow.forEach((h, i) => {
                             const key = String(h || '').trim();
@@ -606,7 +617,7 @@ function getFilteredData() {
                         }
 
                     } else if (headers.includes('名稱') && headers.includes('日期') && !headers.includes('活動名稱')) {
-                        totalSkip++; allSkipList.push(`[假期]假期資料由系統自動抓取，無需匯入`);
+                        allInfoNotes.push('[假期]假期資料由系統自動抓取，無需匯入');
 
                     } else if (headers.includes('員工姓名') && (headers.includes('日期') || headers.includes('開始日期'))) {
                         // === EMPLOYEE LEAVE SHEET ===
@@ -647,10 +658,13 @@ function getFilteredData() {
             await loadHolidays(new Date().getFullYear());
             updateView();
 
+            if (!todoDataRowsFound) allInfoNotes.push('[待辦]未加入待辦事項');
+            currentImportInfoList = [...allInfoNotes];
             currentImportSkipList = [...allSkipList];
             let resultMsg = `匯入完成！\n✅ 成功：${totalSuccess} 條\n⚠️ 跳過：${totalSkip} 條`;
             if (newRoomCount > 0) resultMsg += `\n🏠 自動新增房間：${newRoomCount} 個`;
             if (newEmpCount > 0) resultMsg += `\n👤 自動新增員工：${newEmpCount} 位`;
+            if (allInfoNotes.length > 0) resultMsg += `\nℹ️ 資訊提醒：${allInfoNotes.length} 條（點「i」查看）`;
             if (allSkipList.length > 0) {
                 resultMsg += totalSuccess === 0
                     ? `\n\n⚠️ 所有數據均跳過，極可能Excel欄位格式不匹配！\n點擊匯入旁邊「i」小按鈕查看完整錯誤原因`
