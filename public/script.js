@@ -597,7 +597,7 @@ function getFilteredData() {
                             if (!row || row.every(c => c === null || c === undefined || String(c).trim() === '')) continue;
                             const get = (key) => headerMap[key] !== undefined ? row[headerMap[key]] : undefined;
                             const title = get('title'); const startDateRaw = get('startDate');
-                            if (!title || !startDateRaw) { totalSkip++; allSkipList.push(`[待辦]缺少標題或開始日期`); continue; }
+                            if (!title || !startDateRaw) { allInfoNotes.push(`[待辦]缺少標題或開始日期`); continue; }
                             const startDate = excelDateToStr(startDateRaw);
                             const endDateRaw = get('endDate'); const endDate = endDateRaw ? excelDateToStr(endDateRaw) : startDate;
                             const startTime = get('startTime') ? excelTimeToStr(get('startTime')) : '';
