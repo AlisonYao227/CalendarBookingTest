@@ -2266,6 +2266,22 @@ function getFilteredLeaves(range){
     return list;
 }
 
+// 依可用寬度將文字換行（保留空白字元，完整換行不截斷）
+function pdfWrapText(doc, text, maxW) {
+    const lines = [];
+    let cur = '';
+    for (const ch of String(text)) {
+        if (doc.getTextWidth(cur + ch) > maxW && cur) {
+            lines.push(cur);
+            cur = ch;
+        } else {
+            cur += ch;
+        }
+    }
+    if (cur) lines.push(cur);
+    return lines;
+}
+
 // 匯出 PDF
 function exportPdf(range){
     const data = getFilterEvents(range);
@@ -2446,14 +2462,23 @@ function exportPdf(range){
         const dayColW = (pageW - margin * 2 - timeColW) / 7;
         const hoursPerPage = 12;
 
-        // 全日帶（待辦/假期）－依開始日歸入對應日欄
+        // 全日帶（待辦/假期）－依開始日歸入對應日欄；不截斷，全部顯示
         const allDayItemsByDay = weekDates.map(dateStr =>
             data.filter(ev => ev.date === dateStr && (ev._type === 'todo' || ev._type === 'leave'))
         );
-        const maxAllDayCount = Math.max(0, ...allDayItemsByDay.map(arr => arr.length));
-        const allDayRowH = 6;
-        const allDayShowCount = Math.min(maxAllDayCount, 4);
-        const allDayBandH = maxAllDayCount > 0 ? allDayShowCount * allDayRowH + (maxAllDayCount > 4 ? 3 : 0) : 0;
+        const allDayRowH = 3.4;
+        doc.setFontSize(6);
+        doc.setFont(undefined, 'bold');
+        const allDayLineCountByDay = allDayItemsByDay.map(items => {
+            let total = 0;
+            items.forEach(item => {
+                const label = (item._type === 'todo' ? (item.startTime || '') + ' ' : '') + item.name;
+                total += pdfWrapText(doc, label, dayColW - 4).length;
+            });
+            return total;
+        });
+        const maxAllDayLineCount = Math.max(0, ...allDayLineCountByDay);
+        const allDayBandH = maxAllDayLineCount * allDayRowH;
         const allDayTopY = margin + titleH + dayHeaderH;
 
         const gridTopY = allDayTopY + allDayBandH;
@@ -2559,23 +2584,20 @@ function exportPdf(range){
 
                     const bx = margin + timeColW + di * dayColW + 1;
                     const bw = dayColW - 2;
-                    items.slice(0, allDayShowCount).forEach((item, idx) => {
-                        const y = allDayTopY + idx * allDayRowH + 1;
+                    let y = allDayTopY;
+                    items.forEach(item => {
                         const isTodo = item._type === 'todo';
                         doc.setFillColor(isTodo ? 255 : 76, isTodo ? 248 : 175, isTodo ? 225 : 80);
-                        doc.rect(bx, y, bw, allDayRowH - 1, 'F');
                         doc.setTextColor(isTodo ? 93 : 255, isTodo ? 64 : 255, isTodo ? 55 : 255);
                         doc.setFontSize(6);
                         doc.setFont(undefined, 'bold');
                         const label = isTodo ? (item.startTime || '') + ' ' + item.name : item.name;
-                        doc.text(label, bx + 1, y + allDayRowH - 1.5);
+                        const lines = pdfWrapText(doc, label, bw - 2);
+                        const cellH = lines.length * allDayRowH;
+                        doc.rect(bx, y, bw, cellH, 'F');
+                        lines.forEach((ln, li) => doc.text(ln, bx + 1, y + allDayRowH - 1 + li * allDayRowH));
+                        y += cellH;
                     });
-                    if (items.length > allDayShowCount) {
-                        doc.setTextColor(120);
-                        doc.setFontSize(6);
-                        doc.setFont(undefined, 'normal');
-                        doc.text(`+${items.length - allDayShowCount}`, bx + 1, allDayTopY + allDayShowCount * allDayRowH + 2);
-                    }
                 });
             }
         }
