@@ -1134,6 +1134,7 @@ document.querySelectorAll('.short-input').forEach(input=>{
             populateTodoDropdowns();
             document.getElementById('todoStartDate').value = getTodayStr();
             document.getElementById('todoEndDate').value = getTodayStr();
+            document.getElementById('todoStartDate').dataset.prev = getTodayStr();
             document.getElementById('todoTitle').value = '';
             document.getElementById('todoStartTime').value = '';
             document.getElementById('todoEndTime').value = '';
@@ -1149,6 +1150,20 @@ document.querySelectorAll('.short-input').forEach(input=>{
             document.getElementById('leaveEndDate').value = getTodayStr();
             todosModal.classList.add('active');
         };
+    }
+
+    const todoStartDateEl = document.getElementById('todoStartDate');
+    const todoEndDateEl = document.getElementById('todoEndDate');
+    if (todoStartDateEl && todoEndDateEl) {
+        todoStartDateEl.addEventListener('change', () => {
+            const prev = todoStartDateEl.dataset.prev || '';
+            const newStart = todoStartDateEl.value;
+            if (!newStart) return;
+            if (!todoEndDateEl.value || todoEndDateEl.value === prev) {
+                todoEndDateEl.value = newStart;
+            }
+            todoStartDateEl.dataset.prev = newStart;
+        });
     }
 
     if (addTodoBtn) {
@@ -2951,6 +2966,7 @@ function editTodoItem(todo) {
         document.getElementById('todoTitle').value = todo.title;
         document.getElementById('todoStartDate').value = todo.startDate;
         document.getElementById('todoEndDate').value = todo.endDate;
+        document.getElementById('todoStartDate').dataset.prev = todo.startDate;
         document.getElementById('todoStartTime').value = todo.startTime || '';
         document.getElementById('todoEndTime').value = todo.endTime || '';
         document.getElementById('todoRoom').value = todo.room || '';
