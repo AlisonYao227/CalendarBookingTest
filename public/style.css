@@ -95,6 +95,7 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
+  min-width: 0; /* 防止內容最小寬度撐爆容器，導致側欄被左溢位裁切 */
 }
 
 /* 隱藏/顯示控制 */
@@ -151,6 +152,7 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
   position: relative;
   background: white;
   padding-top: 10px;
+  min-width: 0;
 }
 
 .time-column {
@@ -181,6 +183,7 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
     border-right: 1px solid #eee;
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 .day-column-allDay {
     height: 84px;
@@ -214,6 +217,7 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
   flex-grow: 1;
   position: relative;
   min-height: 1410px;
+  min-width: 0;
   background-image: linear-gradient(to bottom, #e0e0e0 1px, transparent 1px);
   background-size: 100% 60px;
   background-attachment: local;
@@ -624,6 +628,7 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
 #mainViewContainer {
   flex: 1 1 1400px;
   max-width: 1400px;
+  min-width: 0; /* 允許收縮以符合可用寬度，避免撐破容器 */
   transition: max-width 0.2s;
 }
 /* 側欄收合 */
