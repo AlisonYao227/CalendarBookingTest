@@ -1148,6 +1148,7 @@ document.querySelectorAll('.short-input').forEach(input=>{
             if (window._populateLeaveEmployeeDropdown) window._populateLeaveEmployeeDropdown();
             document.getElementById('leaveStartDate').value = getTodayStr();
             document.getElementById('leaveEndDate').value = getTodayStr();
+            document.getElementById('leaveStartDate').dataset.prev = getTodayStr();
             todosModal.classList.add('active');
         };
     }
@@ -1163,6 +1164,20 @@ document.querySelectorAll('.short-input').forEach(input=>{
                 todoEndDateEl.value = newStart;
             }
             todoStartDateEl.dataset.prev = newStart;
+        });
+    }
+
+    const leaveStartDateEl = document.getElementById('leaveStartDate');
+    const leaveEndDateEl = document.getElementById('leaveEndDate');
+    if (leaveStartDateEl && leaveEndDateEl) {
+        leaveStartDateEl.addEventListener('change', () => {
+            const prev = leaveStartDateEl.dataset.prev || '';
+            const newStart = leaveStartDateEl.value;
+            if (!newStart) return;
+            if (!leaveEndDateEl.value || leaveEndDateEl.value === prev) {
+                leaveEndDateEl.value = newStart;
+            }
+            leaveStartDateEl.dataset.prev = newStart;
         });
     }
 
@@ -3053,6 +3068,7 @@ function editTodoItem(todo) {
                 if (!json.ok) return alert(json.msg);
                 document.getElementById('leaveStartDate').value = getTodayStr();
                 document.getElementById('leaveEndDate').value = getTodayStr();
+                document.getElementById('leaveStartDate').dataset.prev = getTodayStr();
                 document.getElementById('leaveType').value = '';
                 await loadLeaves(); if (window._renderLeaves) window._renderLeaves(); updateView();
             } catch (err) { alert('新增失敗：' + err.message); }
