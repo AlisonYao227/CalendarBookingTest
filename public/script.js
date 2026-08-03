@@ -2538,6 +2538,33 @@ function exportPdf(range){
                 }
                 doc.setTextColor(51);
             });
+
+            // Draw all-day todos/leaves for this page's hours (only on first page where startHour=0)
+            if (startHour === 0) {
+                const allDayRowH = 8;
+                const allDayTopY = gridTopY - allDayRowH - 1;
+                weekDates.forEach((dateStr, di) => {
+                    const dayTodos = data.filter(ev => ev._type === 'todo' && ev.date === dateStr);
+                    const dayLeaves = data.filter(ev => ev._type === 'leave' && ev.date === dateStr);
+                    const allDayItems = [...dayTodos, ...dayLeaves];
+                    if (allDayItems.length === 0) return;
+
+                    const bx = margin + timeColW + di * dayColW + 1;
+                    const bw = dayColW - 2;
+                    let itemY = allDayTopY;
+                    allDayItems.forEach(item => {
+                        const isTodo = item._type === 'todo';
+                        doc.setFillColor(isTodo ? 255 : 76, isTodo ? 248 : 175, isTodo ? 225 : 80);
+                        doc.rect(bx, itemY, bw, allDayRowH, 'F');
+                        doc.setTextColor(isTodo ? 93 : 255, isTodo ? 64 : 255, isTodo ? 55 : 255);
+                        doc.setFontSize(6);
+                        doc.setFont(undefined, 'bold');
+                        const label = isTodo ? (item.startTime || '') + ' ' + item.name : item.name;
+                        doc.text(label, bx + 1, itemY + 5.5);
+                        itemY += allDayRowH;
+                    });
+                });
+            }
         }
         doc.save(fileName);
         return;
@@ -2566,12 +2593,31 @@ function exportPdf(range){
     timelineEl.style.maxHeight = "none";
     timelineEl.style.overflowY = "visible";
 
+    // Expand all-day strips to show all todos/leaves
+    const allDayStrips = document.querySelectorAll('.day-column-allDay');
+    const oldAllDayStyles = Array.from(allDayStrips).map(el => ({
+        el,
+        height: el.style.height,
+        overflow: el.style.overflowY,
+        maxHeight: el.style.maxHeight
+    }));
+    allDayStrips.forEach(el => {
+        el.style.height = 'auto';
+        el.style.overflowY = 'visible';
+        el.style.maxHeight = 'none';
+    });
+
     setTimeout(()=>{
         html2pdf().set(opt).from(printDom).save().finally(()=>{
             monthGrid.style.height = oldGridHeight;
             daysWrap.style.gridAutoRows = oldDayHeight;
             timelineEl.style.maxHeight = oldTimelineMaxH;
             timelineEl.style.overflowY = oldTimelineOverflow;
+            oldAllDayStyles.forEach(({el, height, overflow, maxHeight}) => {
+                el.style.height = height;
+                el.style.overflowY = overflow;
+                el.style.maxHeight = maxHeight;
+            });
         });
     }, 300);
 }
