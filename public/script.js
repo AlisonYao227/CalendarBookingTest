@@ -1449,6 +1449,11 @@ function renderTimelineView(type) {
     eventGrid.className = "event-grid";
 eventGrid.classList.remove("week-mode");
 
+    const allDayGutter = document.createElement('div');
+    allDayGutter.className = 'time-gutter-allDay';
+    allDayGutter.textContent = '全天';
+    timeColumn.appendChild(allDayGutter);
+
     for (let h = 0; h <= 23; h++) {
         timeColumn.innerHTML += `<div class="time-slot-label">${String(h).padStart(2,'0')}:00</div>`;
     }
@@ -1458,10 +1463,7 @@ eventGrid.classList.remove("week-mode");
     if (type === 'day') {
         weekHeader.style.display = 'none';
         monthYear.innerText = formatDateFull(selectedCalendarDate);
-        const col = document.createElement('div');
-        col.className = 'day-column';
-        renderEventsIntoColumn(col, getFormattedDate(selectedCalendarDate));
-        eventGrid.appendChild(col);
+        eventGrid.appendChild(createDayColumn(getFormattedDate(selectedCalendarDate)));
     }else {
         weekHeader.style.display = 'grid';
         eventGrid.classList.add('week-mode');
@@ -1476,41 +1478,24 @@ eventGrid.classList.remove("week-mode");
             const targetDate = new Date(startOfWeek);
             targetDate.setDate(startOfWeek.getDate() + i);
             headerLabels[i].innerText = `${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][i]} ${targetDate.getDate()}`;
-            const col = document.createElement('div');
-            col.className = 'day-column';
-            renderEventsIntoColumn(col, getFormattedDate(targetDate));
-            eventGrid.appendChild(col);
+            eventGrid.appendChild(createDayColumn(getFormattedDate(targetDate)));
         }
     }
 
-    // 在時間軸下方顯示待辦事項與假期（獨立區域，不與預約橫條重疊）
-    const oldExtras = document.querySelector('.timeline-extras');
-    if (oldExtras) oldExtras.remove();
-    const extrasSection = document.createElement('div');
-    extrasSection.className = 'timeline-extras';
-    if (type === 'day') {
-        const cell = document.createElement('div');
-        cell.className = 'extras-cell';
-        cell.innerHTML = getDayExtrasHtml(getFormattedDate(selectedCalendarDate));
-        extrasSection.appendChild(cell);
-    } else {
-        extrasSection.style.gridTemplateColumns = '60px repeat(7, 1fr)';
-        const gutter = document.createElement('div');
-        gutter.className = 'extras-gutter';
-        extrasSection.appendChild(gutter);
-        const startOfWeek = new Date(currentDate);
-        startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
-        for (let i = 0; i < 7; i++) {
-            const targetDate = new Date(startOfWeek);
-            targetDate.setDate(startOfWeek.getDate() + i);
-            const cell = document.createElement('div');
-            cell.className = 'extras-cell';
-            cell.innerHTML = getDayExtrasHtml(getFormattedDate(targetDate));
-            extrasSection.appendChild(cell);
-        }
-    }
-    timelineView.appendChild(extrasSection);
+}
 
+function createDayColumn(dateStr) {
+    const col = document.createElement('div');
+    col.className = 'day-column';
+    const allDay = document.createElement('div');
+    allDay.className = 'day-column-allDay';
+    allDay.innerHTML = getDayExtrasHtml(dateStr);
+    col.appendChild(allDay);
+    const body = document.createElement('div');
+    body.className = 'day-column-body';
+    col.appendChild(body);
+    renderEventsIntoColumn(body, dateStr);
+    return col;
 }
 
 function getDayExtrasHtml(dateStr) {

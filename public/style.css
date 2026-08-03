@@ -177,27 +177,37 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
 
 /* 分開寫，不要合併選擇器 */
 .day-column {
-
     position: relative;
     border-right: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+}
+.day-column-allDay {
+    height: 84px;
+    overflow-y: auto;
+    background: #fdfbf5;
+    border-bottom: 1px solid #ddd;
+    padding: 2px 4px;
+    box-sizing: border-box;
+    position: sticky;
+    top: 0;
+    z-index: 15;
+}
+.day-column-body {
+    position: relative;
     min-height: 1410px;
     background-image: linear-gradient(#f0f0f0 1px, transparent 1px);
     background-size: 100% 60px;
     margin-top: 0;
 }
-.timeline-extras {
-  display: grid;
-  background: #fafafa;
-  border-top: 1px solid #ddd;
-  font-size: 10px;
-}
-.extras-gutter {
-  width: 60px;
-}
-.extras-cell {
-  padding: 4px 6px;
-  border-right: 1px solid #eee;
-  min-height: 20px;
+.time-gutter-allDay {
+    height: 84px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #999;
+    border-bottom: 1px solid #ddd;
 }
 
 .event-grid {
