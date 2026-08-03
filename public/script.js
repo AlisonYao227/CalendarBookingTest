@@ -2532,10 +2532,18 @@ function exportPdf(range){
     monthGrid.style.height = "auto";
     daysWrap.style.gridAutoRows = "auto";
 
+    const timelineEl = document.getElementById("timelineView");
+    const oldTimelineMaxH = timelineEl.style.maxHeight;
+    const oldTimelineOverflow = timelineEl.style.overflowY;
+    timelineEl.style.maxHeight = "none";
+    timelineEl.style.overflowY = "visible";
+
     setTimeout(()=>{
-        html2pdf().set(opt).from(printDom).save().then(()=>{
+        html2pdf().set(opt).from(printDom).save().finally(()=>{
             monthGrid.style.height = oldGridHeight;
             daysWrap.style.gridAutoRows = oldDayHeight;
+            timelineEl.style.maxHeight = oldTimelineMaxH;
+            timelineEl.style.overflowY = oldTimelineOverflow;
         });
     }, 300);
 }
