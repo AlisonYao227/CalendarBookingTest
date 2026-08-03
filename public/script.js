@@ -2444,7 +2444,18 @@ function exportPdf(range){
         const timeColW = 16;
         const dayColW = (pageW - margin * 2 - timeColW) / 7;
         const hoursPerPage = 12;
-        const gridTopY = margin + titleH + dayHeaderH;
+
+        // 全日帶（待辦/假期）－依開始日歸入對應日欄
+        const allDayItemsByDay = weekDates.map(dateStr =>
+            data.filter(ev => ev.date === dateStr && (ev._type === 'todo' || ev._type === 'leave'))
+        );
+        const maxAllDayCount = Math.max(0, ...allDayItemsByDay.map(arr => arr.length));
+        const allDayRowH = 6;
+        const allDayShowCount = Math.min(maxAllDayCount, 4);
+        const allDayBandH = maxAllDayCount > 0 ? allDayShowCount * allDayRowH + (maxAllDayCount > 4 ? 3 : 0) : 0;
+        const allDayTopY = margin + titleH + dayHeaderH;
+
+        const gridTopY = allDayTopY + allDayBandH;
         const gridH = pageH - gridTopY - margin;
         const hourH = gridH / hoursPerPage;
         const totalPages = Math.ceil(24 / hoursPerPage);
@@ -2497,7 +2508,7 @@ function exportPdf(range){
             doc.line(margin + timeColW, gridTopY + (endHour - startHour) * hourH, pageW - margin, gridTopY + (endHour - startHour) * hourH);
 
             data.forEach(ev => {
-                if (!ev.startTime || !ev.endTime || !ev.date) return;
+                if (ev._type || !ev.startTime || !ev.endTime || !ev.date) return;
                 const evDateIdx = weekDates.indexOf(ev.date);
                 if(evDateIdx < 0) return;
                 const [sh, sm] = ev.startTime.split(':').map(Number);
@@ -2539,30 +2550,31 @@ function exportPdf(range){
                 doc.setTextColor(51);
             });
 
-            // Draw all-day todos/leaves for this page's hours (only on first page where startHour=0)
-            if (startHour === 0) {
-                const allDayRowH = 8;
-                const allDayTopY = gridTopY - allDayRowH - 1;
+            // Draw all-day todos/leaves (only on first page) inside the reserved band
+            if (startHour === 0 && allDayBandH > 0) {
                 weekDates.forEach((dateStr, di) => {
-                    const dayTodos = data.filter(ev => ev._type === 'todo' && ev.date === dateStr);
-                    const dayLeaves = data.filter(ev => ev._type === 'leave' && ev.date === dateStr);
-                    const allDayItems = [...dayTodos, ...dayLeaves];
-                    if (allDayItems.length === 0) return;
+                    const items = allDayItemsByDay[di];
+                    if (items.length === 0) return;
 
                     const bx = margin + timeColW + di * dayColW + 1;
                     const bw = dayColW - 2;
-                    let itemY = allDayTopY;
-                    allDayItems.forEach(item => {
+                    items.slice(0, allDayShowCount).forEach((item, idx) => {
+                        const y = allDayTopY + idx * allDayRowH + 1;
                         const isTodo = item._type === 'todo';
                         doc.setFillColor(isTodo ? 255 : 76, isTodo ? 248 : 175, isTodo ? 225 : 80);
-                        doc.rect(bx, itemY, bw, allDayRowH, 'F');
+                        doc.rect(bx, y, bw, allDayRowH - 1, 'F');
                         doc.setTextColor(isTodo ? 93 : 255, isTodo ? 64 : 255, isTodo ? 55 : 255);
                         doc.setFontSize(6);
                         doc.setFont(undefined, 'bold');
                         const label = isTodo ? (item.startTime || '') + ' ' + item.name : item.name;
-                        doc.text(label, bx + 1, itemY + 5.5);
-                        itemY += allDayRowH;
+                        doc.text(label, bx + 1, y + allDayRowH - 1.5);
                     });
+                    if (items.length > allDayShowCount) {
+                        doc.setTextColor(120);
+                        doc.setFontSize(6);
+                        doc.setFont(undefined, 'normal');
+                        doc.text(`+${items.length - allDayShowCount}`, bx + 1, allDayTopY + allDayShowCount * allDayRowH + 2);
+                    }
                 });
             }
         }
@@ -2607,6 +2619,16 @@ function exportPdf(range){
         el.style.maxHeight = 'none';
     });
 
+    // 同步時間欄「全天」槽位高度＝最高全天條高度，避免小時標籤與網格錯位
+    const timeGutters = document.querySelectorAll('.time-gutter-allDay');
+    const oldGutterStyles = Array.from(timeGutters).map(el => ({ el, height: el.style.height }));
+    let maxAllDayH = 0;
+    allDayStrips.forEach(el => { maxAllDayH = Math.max(maxAllDayH, el.offsetHeight || 0); });
+    if (maxAllDayH > 0) {
+        allDayStrips.forEach(el => { el.style.height = maxAllDayH + 'px'; });
+        timeGutters.forEach(el => { el.style.height = maxAllDayH + 'px'; });
+    }
+
     setTimeout(()=>{
         html2pdf().set(opt).from(printDom).save().finally(()=>{
             monthGrid.style.height = oldGridHeight;
@@ -2618,6 +2640,7 @@ function exportPdf(range){
                 el.style.overflowY = overflow;
                 el.style.maxHeight = maxHeight;
             });
+            oldGutterStyles.forEach(({el, height}) => { el.style.height = height; });
         });
     }, 300);
 }
