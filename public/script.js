@@ -1181,6 +1181,21 @@ document.querySelectorAll('.short-input').forEach(input=>{
         });
     }
 
+    // 選定開始時間後，結束時間自動設為一小時後
+    const todoStartTimeEl = document.getElementById('todoStartTime');
+    const todoEndTimeEl = document.getElementById('todoEndTime');
+    if (todoStartTimeEl && todoEndTimeEl) {
+        todoStartTimeEl.addEventListener('change', () => {
+            const val = todoStartTimeEl.value;
+            if (!val) return;
+            const [h, m] = val.split(':').map(Number);
+            const next = String((h + 1) % 24).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+            if (Array.from(todoEndTimeEl.options).some(o => o.value === next)) {
+                todoEndTimeEl.value = next;
+            }
+        });
+    }
+
     if (addTodoBtn) {
         let todoBusy = false;
         addTodoBtn.onclick = async () => {
