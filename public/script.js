@@ -2309,7 +2309,7 @@ async function applySimHeiFont(doc) {
 // 匯出 PDF
 async function exportPdf(range){
     const data = getFilterEvents(range);
-    if(data.length === 0) return alert("該範圍無任何記錄");
+    if(data.length === 0 && range !== 'currentWeek') return alert("該範圍無任何記錄");
     const {year,month} = getCurrentViewYM();
     const monthStr = String(month + 1).padStart(2,"0");
     let fileName;
@@ -2498,10 +2498,26 @@ async function exportPdf(range){
         const dayColW = (pageW - margin * 2 - timeColW) / 7;
         const hoursPerPage = 12;
 
-        // 全日帶（待辦/假期）－依開始日歸入對應日欄；不截斷，全部顯示
-        const allDayItemsByDay = weekDates.map(dateStr =>
-            data.filter(ev => ev.date === dateStr && (ev._type === 'todo' || ev._type === 'leave'))
-        );
+        // 全日帶（待辦/假期）－與月曆 UI 一致：以「涵蓋該日」判定（跨日/區間都算），全部顯示不截斷
+        const allDayItemsByDay = weekDates.map(dateStr => {
+            const items = [];
+            (todosData || []).forEach(todo => {
+                if (filterEmployee && todo.employee !== filterEmployee) return;
+                if (filterRoom && todo.room !== filterRoom) return;
+                if (todo.startDate <= dateStr && todo.endDate >= dateStr) {
+                    items.push({ _type: 'todo', name: todo.title, startTime: todo.startTime || '' });
+                }
+            });
+            (leavesData || []).forEach(leave => {
+                if (filterEmployee && leave.employee !== filterEmployee) return;
+                if (leave.leaveDate <= dateStr && (leave.endDate || leave.leaveDate) >= dateStr) {
+                    items.push({ _type: 'leave', name: leave.employee + ' 休假' + (leave.leaveType ? '(' + leave.leaveType + ')' : ''), startTime: '' });
+                }
+            });
+            return items;
+        });
+        const hasEvents = data.some(ev => !ev._type);
+        if (!hasEvents && allDayItemsByDay.every(items => items.length === 0)) return alert("該範圍無任何記錄");
         const allDayRowH = 3.4;
         doc.setFontSize(6);
         doc.setFont(undefined, 'bold');
