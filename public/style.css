@@ -383,10 +383,12 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
   height: 100%;
   background: rgba(0, 0, 0, 0.5); /* 半透明黑背景 */
   justify-content: center; 
-  align-items: center; 
+  align-items: flex-start;
+  overflow-y: auto; /* 內容過高時可捲動，避免頂端叉號被裁切 */
   z-index: 9999; /* 提高層級，確保不被其他容器遮擋 */
 }
 .modal-overlay.active { display: flex; }
+.modal-overlay.active > * { margin: auto; }
 .add-event-wrapper { background: white; padding: 20px; border-radius: 8px; width: 400px; }
 .input-group { margin-bottom: 15px; }
 .input-group label { display: block; margin-bottom: 5px; font-size: 14px; }
