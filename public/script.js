@@ -1286,6 +1286,8 @@ function populateTodoDropdowns() {
 // --- 視圖控制 ---
 function updateView() {
     const view = viewSelect.value;
+    // 同步：所有視圖都以「使用者選取的日期」為基準，避免切換視圖後錯位
+    currentDate = new Date(selectedCalendarDate);
     const optDay = document.getElementById("optDayRange");
     if (view === "day") {
         optDay.style.display = "block";
@@ -1440,7 +1442,6 @@ function renderMonthView() {
     // attach click handlers via delegation
     calendarDays.querySelectorAll('.day').forEach(dayDiv => {
         const dateStr = dayDiv.dataset.date;
-        dayDiv.onmouseenter = () => { selectedCalendarDate = new Date(dateStr); };
         dayDiv.onclick = () => {
             selectedDateStr = dateStr;
             selectedCalendarDate = new Date(dateStr);
