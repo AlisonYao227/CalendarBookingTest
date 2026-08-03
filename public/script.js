@@ -2349,6 +2349,59 @@ async function exportPdf(range){
         const headerH = 8;
         const titleH = 10;
         const margin = 4;
+        const weekdays = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+        const itemFont = 7;
+        const lineH = 3.6;
+        const availH = pageH - margin * 2 - titleH - headerH;
+
+        // 每個日期格：與月曆 UI 一致的涵蓋判定（跨日/區間都算），換行後全數列出
+        function drawDayContent(day, x, y, cellW) {
+            const font = day._font;
+            const lh = day._lh;
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'bold');
+            if(day.dateStr === getTodayStr()) doc.setTextColor(74, 144, 226);
+            else doc.setTextColor(51);
+            doc.text(String(day.dayNum), x + 2, y + 3.5);
+            let ey = y + 7;
+            doc.setFont(undefined, 'normal');
+            day.items.forEach(it => {
+                if (it.kind === 'holiday') {
+                    doc.setTextColor(211, 47, 47);
+                    doc.setFont(undefined, 'bold');
+                    doc.setFontSize(Math.min(font, 6));
+                    let t = it.text;
+                    if (doc.getTextWidth(t) > cellW) {
+                        while (doc.getTextWidth(t + '…') > cellW && t.length > 1) t = t.slice(0, -1);
+                        t += '…';
+                    }
+                    doc.text(t, x + 1, ey);
+                    ey += lh;
+                    doc.setTextColor(51);
+                    doc.setFont(undefined, 'normal');
+                    doc.setFontSize(font);
+                    return;
+                }
+                let fill, textColor;
+                if (it.kind === 'leave') { fill = [76, 175, 80]; textColor = [255, 255, 255]; }
+                else if (it.kind === 'todo') { fill = [249, 168, 37]; textColor = [93, 64, 55]; }
+                else {
+                    const hex = getRoomStyle(it.room).label || '#7c5cbf';
+                    fill = [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+                    textColor = [255, 255, 255];
+                }
+                doc.setFontSize(font);
+                doc.setFont(undefined, 'bold');
+                const lines = pdfWrapText(doc, it.text, cellW - 1);
+                doc.setFillColor(fill[0], fill[1], fill[2]);
+                doc.rect(x + 0.5, ey - 2, cellW, lines.length * lh, 'F');
+                doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+                lines.forEach((ln, li) => doc.text(ln, x + 1, ey + li * lh));
+                ey += lines.length * lh;
+                doc.setTextColor(51);
+                doc.setFont(undefined, 'normal');
+            });
+        }
 
         for(let m = 0; m < 12; m++){
             if(m > 0) doc.addPage();
@@ -2356,115 +2409,124 @@ async function exportPdf(range){
             const lastDate = new Date(targetYear, m + 1, 0).getDate();
             const totalCells = firstDay + lastDate;
             const rows = Math.ceil(totalCells / 7);
-            const cellH = (pageH - titleH - headerH - margin * 2) / rows;
+            const cellWAvailable = colW - 2;
 
-            doc.setFontSize(16);
-            doc.setTextColor(51);
-            doc.text(`${monthsEN[m]} ${targetYear}`, pageW / 2, margin + 7, { align: 'center' });
-            doc.setDrawColor(74, 144, 226);
-            doc.setLineWidth(0.5);
-            doc.line(margin, margin + titleH - 2, pageW - margin, margin + titleH - 2);
-
-            const weekdays = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-            const topY = margin + titleH;
-            doc.setFontSize(9);
-            doc.setFont(undefined, 'bold');
-            doc.setFillColor(238, 238, 238);
-            doc.rect(margin, topY, pageW - margin * 2, headerH, 'F');
-            doc.setTextColor(80);
-            weekdays.forEach((w, wi) => {
-                doc.text(w, margin + wi * colW + colW / 2, topY + headerH - 2, { align: 'center' });
-            });
-
-            const gridTop = topY + headerH;
-            doc.setFont(undefined, 'normal');
+            const days = [];
             for(let i = 0; i < totalCells; i++){
-                const col = i % 7;
-                const row = Math.floor(i / 7);
-                const x = margin + col * colW;
-                const y = gridTop + row * cellH;
-
-                doc.setDrawColor(215, 207, 207);
-                doc.setLineWidth(0.2);
-                doc.rect(x, y, colW, cellH);
-
-                if(i >= firstDay){
-                    const dayNum = i - firstDay + 1;
-                    const dateStr = `${targetYear}-${String(m+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
-                    doc.setFontSize(8);
-                    doc.setFont(undefined, 'bold');
-                    if(dateStr === getTodayStr()){
-                        doc.setTextColor(74, 144, 226);
-                    }else{
-                        doc.setTextColor(51);
-                    }
-                    doc.text(String(dayNum), x + 2, y + 3.5);
-
-                    const dayEvents = data.filter(ev => ev.date === dateStr);
+                const dayNum = i - firstDay + 1;
+                const dateStr = `${targetYear}-${String(m+1).padStart(2,'0')}-${String(Math.max(dayNum, 1)).padStart(2,'0')}`;
+                const items = [];
+                if(dayNum >= 1){
                     const holiday = isHoliday(dateStr);
-                    const cellWAvailable = colW - 2;
-                    let maxLines = Math.max(1, Math.floor((cellH - 10) / 3.5));
-                    let fontSize = 7;
-                    let lineH = 4;
-                    if (maxLines < 2) { fontSize = 5; lineH = 2.8; maxLines = Math.max(1, Math.floor((cellH - 10) / 2.4)); }
-                    else if (maxLines < 3) { fontSize = 6; lineH = 3.2; }
-                    doc.setFont(undefined, 'normal');
-                    doc.setFontSize(fontSize);
-                    let ey = y + 7;
-                    if (holiday) {
-                        doc.setTextColor(211, 47, 47);
-                        doc.setFont(undefined, 'bold');
-                        doc.setFontSize(Math.min(fontSize, 6));
-                        let holidayText = holiday.name;
-                        if (doc.getTextWidth(holidayText) > cellWAvailable) {
-                            while (doc.getTextWidth(holidayText + '…') > cellWAvailable && holidayText.length > 1) holidayText = holidayText.slice(0, -1);
-                            holidayText += '…';
-                        }
-                        doc.text(holidayText, x + 1, ey);
-                        ey += lineH - 1;
-                        maxLines--;
-                        doc.setTextColor(51);
-                        doc.setFont(undefined, 'normal');
-                        doc.setFontSize(fontSize);
-                    }
-                    dayEvents.forEach(ev => {
-                        if (maxLines <= 0) return;
-                        if (ev._type === 'leave') {
-                            doc.setFillColor(76, 175, 80);
-                            doc.rect(x + 0.5, ey - 2, cellWAvailable, 3, 'F');
-                            doc.setTextColor(255, 255, 255);
-                            const txt = ev.name;
-                            doc.text(txt, x + 1, ey);
-                            ey += lineH;
-                            maxLines--;
-                        } else if (ev._type === 'todo') {
-                            doc.setFillColor(249, 168, 37);
-                            doc.rect(x + 0.5, ey - 2, cellWAvailable, 3, 'F');
-                            doc.setTextColor(93, 64, 55);
-                            const txt = (ev.startTime || '') + ' ' + ev.name;
-                            doc.text(txt, x + 1, ey);
-                            ey += lineH;
-                            maxLines--;
-                        } else {
-                            if (ey + lineH > y + cellH) return;
-                            const roomStyle = getRoomStyle(ev.room);
-                            const hex = roomStyle.label || '#7c5cbf';
-                            const r = parseInt(hex.slice(1,3),16);
-                            const g = parseInt(hex.slice(3,5),16);
-                            const b = parseInt(hex.slice(5,7),16);
-                            doc.setFillColor(r, g, b);
-                            doc.rect(x + 0.5, ey - 2.5, cellWAvailable, 3.8, 'F');
-                            doc.setTextColor(255, 255, 255);
-                            doc.setFontSize(fontSize);
-                            const txt = `${ev.startTime} ${ev.name} - ${ev.room}`;
-                            doc.text(txt, x + 1, ey);
-                            ey += lineH;
-                            maxLines--;
+                    if(holiday) items.push({ kind: 'holiday', text: holiday.name });
+                    (eventsData || []).forEach(ev => {
+                        if (ev.date !== dateStr) return;
+                        if (filterEmployee && ev.employee !== filterEmployee) return;
+                        if (filterRoom && ev.room !== filterRoom) return;
+                        items.push({ kind: 'event', text: `${ev.startTime} ${ev.name} - ${ev.room}`, room: ev.room });
+                    });
+                    (todosData || []).forEach(todo => {
+                        if (filterEmployee && todo.employee !== filterEmployee) return;
+                        if (filterRoom && todo.room !== filterRoom) return;
+                        if (todo.startDate <= dateStr && todo.endDate >= dateStr) {
+                            items.push({ kind: 'todo', text: (todo.startTime || '') + ' ' + todo.title });
                         }
                     });
-                    doc.setTextColor(51);
+                    (leavesData || []).forEach(leave => {
+                        if (filterEmployee && leave.employee !== filterEmployee) return;
+                        if (leave.leaveDate <= dateStr && (leave.endDate || leave.leaveDate) >= dateStr) {
+                            items.push({ kind: 'leave', text: leave.employee + ' 休假' + (leave.leaveType ? '(' + leave.leaveType + ')' : '') });
+                        }
+                    });
                 }
+                days.push({ dayNum, dateStr, items });
             }
+
+            // 計算每個日期格需要的行數；超過一頁可容納時改用緊湊字級，確保不截斷
+            doc.setFont('SimHei', 'normal');
+            doc.setFontSize(itemFont);
+            days.forEach(day => {
+                let lines = 1;
+                day.items.forEach(it => {
+                    if(it.kind === 'holiday'){ lines += 1; return; }
+                    lines += pdfWrapText(doc, it.text, cellWAvailable).length;
+                });
+                let font = itemFont, lh = lineH;
+                if (lines * lh + 2 > availH) {
+                    doc.setFontSize(5);
+                    let compact = 1;
+                    day.items.forEach(it => {
+                        if(it.kind === 'holiday'){ compact += 1; return; }
+                        compact += pdfWrapText(doc, it.text, cellWAvailable).length;
+                    });
+                    doc.setFontSize(itemFont);
+                    font = 5; lh = 2.8;
+                    lines = compact;
+                    if (lines * lh + 2 > availH) lines = Math.max(1, Math.floor((availH - 2) / lh));
+                }
+                day._font = font;
+                day._lh = lh;
+                day._lines = lines;
+                day._need = Math.min(availH, lines * lh + 2);
+            });
+
+            // 每列高度依當列最滿的一天決定；放不下就分頁，確保不截斷
+            const rowInfos = [];
+            for(let r = 0; r < rows; r++){
+                const slice = days.slice(r * 7, r * 7 + 7);
+                let h = 10;
+                slice.forEach(d => { h = Math.max(h, d._need); });
+                rowInfos.push({ days: slice, h });
+            }
+
+            const pageRows = [];
+            let cur = [];
+            let used = 0;
+            rowInfos.forEach((ri, idx) => {
+                if(used + ri.h > availH && cur.length > 0){
+                    pageRows.push(cur);
+                    cur = [];
+                    used = 0;
+                }
+                cur.push(idx);
+                used += ri.h;
+            });
+            if(cur.length > 0) pageRows.push(cur);
+
+            pageRows.forEach((rowIndexes, pi) => {
+                if(pi > 0) doc.addPage();
+                doc.setFontSize(16);
+                doc.setTextColor(51);
+                doc.text(`${monthsEN[m]} ${targetYear}`, pageW / 2, margin + 7, { align: 'center' });
+                doc.setDrawColor(74, 144, 226);
+                doc.setLineWidth(0.5);
+                doc.line(margin, margin + titleH - 2, pageW - margin, margin + titleH - 2);
+
+                const topY = margin + titleH;
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'bold');
+                doc.setFillColor(238, 238, 238);
+                doc.rect(margin, topY, pageW - margin * 2, headerH, 'F');
+                doc.setTextColor(80);
+                weekdays.forEach((w, wi) => {
+                    doc.text(w, margin + wi * colW + colW / 2, topY + headerH - 2, { align: 'center' });
+                });
+
+                const gridTop = topY + headerH;
+                doc.setFont(undefined, 'normal');
+                let y = gridTop;
+                rowIndexes.forEach(riIdx => {
+                    const ri = rowInfos[riIdx];
+                    ri.days.forEach((day, ci) => {
+                        const x = margin + ci * colW;
+                        doc.setDrawColor(215, 207, 207);
+                        doc.setLineWidth(0.2);
+                        doc.rect(x, y, colW, ri.h);
+                        if(day.dayNum >= 1) drawDayContent(day, x, y, cellWAvailable);
+                    });
+                    y += ri.h;
+                });
+            });
         }
         doc.save(fileName);
         return;
