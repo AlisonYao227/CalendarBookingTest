@@ -2282,8 +2282,32 @@ function pdfWrapText(doc, text, maxW) {
     return lines;
 }
 
+let cachedSimHeiB64 = null;
+async function loadSimHeiFont() {
+    if (cachedSimHeiB64) return cachedSimHeiB64;
+    const res = await fetch('fonts/SimHei.ttf');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const blob = await res.blob();
+    const b64 = await new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result).split(',')[1]);
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+    });
+    cachedSimHeiB64 = b64;
+    return b64;
+}
+
+async function applySimHeiFont(doc) {
+    const b64 = await loadSimHeiFont();
+    doc.addFileToVFS('SimHei.ttf', b64);
+    doc.addFont('SimHei.ttf', 'SimHei', 'normal');
+    doc.addFont('SimHei.ttf', 'SimHei', 'bold');
+    doc.setFont('SimHei', 'normal');
+}
+
 // 匯出 PDF
-function exportPdf(range){
+async function exportPdf(range){
     const data = getFilterEvents(range);
     if(data.length === 0) return alert("該範圍無任何記錄");
     const {year,month} = getCurrentViewYM();
@@ -2311,6 +2335,12 @@ function exportPdf(range){
 
     if(range === "allYear"){
         const doc = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        try {
+            await applySimHeiFont(doc);
+        } catch (err) {
+            alert("中文字型載入失敗：" + err.message);
+            return;
+        }
         const targetYear = year;
         const pageW = doc.internal.pageSize.getWidth();
         const pageH = doc.internal.pageSize.getHeight();
@@ -2442,6 +2472,12 @@ function exportPdf(range){
 
     if(range === "currentWeek"){
         const doc = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        try {
+            await applySimHeiFont(doc);
+        } catch (err) {
+            alert("中文字型載入失敗：" + err.message);
+            return;
+        }
         const pageW = doc.internal.pageSize.getWidth();
         const pageH = doc.internal.pageSize.getHeight();
 
