@@ -3089,39 +3089,149 @@ function renderRoomChips() {
     });
 }
 
-// ====== 房間顏色選擇器 ======
+// ====== 房間顏色選擇器（HSV 調色盤） ======
+function _hsvToRgb(h, s, v) {
+    s /= 100; v /= 100;
+    const c = v * s;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const m = v - c;
+    let r, g, b;
+    if (h < 60)       { r = c; g = x; b = 0; }
+    else if (h < 120) { r = x; g = c; b = 0; }
+    else if (h < 180) { r = 0; g = c; b = x; }
+    else if (h < 240) { r = 0; g = x; b = c; }
+    else if (h < 300) { r = x; g = 0; b = c; }
+    else              { r = c; g = 0; b = x; }
+    return [
+        Math.round((r + m) * 255),
+        Math.round((g + m) * 255),
+        Math.round((b + m) * 255)
+    ];
+}
+function _rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+function _hexToHsv(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+    const r = parseInt(hex.slice(0, 2), 16) / 255;
+    const g = parseInt(hex.slice(2, 4), 16) / 255;
+    const b = parseInt(hex.slice(4, 6), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const d = max - min;
+    let h = 0, s = max === 0 ? 0 : (d / max) * 100, v = max * 100;
+    if (d !== 0) {
+        if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+        else if (max === g) h = ((b - r) / d + 2) * 60;
+        else h = ((r - g) / d + 4) * 60;
+    }
+    return [h, s, v];
+}
+
+let _pickerDragging = null;
 function showColorPicker(roomName) {
     selectedColorRoom = roomName;
     const modal = document.getElementById('colorPickerModal');
     const title = document.getElementById('colorPickerTitle');
+    const gradEl = document.getElementById('pickerGradient');
+    const hueEl = document.getElementById('pickerHue');
+    const marker = document.getElementById('pickerMarker');
+    const hueMarker = document.getElementById('pickerHueMarker');
+    const previewCur = document.getElementById('pickerPreviewCur');
+    const previewNew = document.getElementById('pickerPreviewNew');
+    const hexInput = document.getElementById('pickerHexInput');
     const swatchesEl = document.getElementById('colorSwatches');
-    const colorInput = document.getElementById('colorPickerInput');
-    const hexEl = document.getElementById('colorPickerHex');
 
     title.textContent = `調整「${roomName}」顏色`;
+
     const currentHex = getRoomStyle(roomName).border;
-    colorInput.value = currentHex;
-    hexEl.textContent = currentHex;
+    previewCur.style.background = currentHex;
+    let [curH, curS, curV] = _hexToHsv(currentHex);
+
+    function applyToUI() {
+        const [r, g, b] = _hsvToRgb(curH, curS, curV);
+        const hex = _rgbToHex(r, g, b);
+        gradEl.style.background = `hsl(${curH}, 100%, 50%)`;
+        previewNew.style.background = hex;
+        hexInput.value = hex.replace('#', '').toUpperCase();
+        marker.style.left = (curS) + '%';
+        marker.style.top = (100 - curV) + '%';
+        hueMarker.style.left = (curH / 360 * 100) + '%';
+        swatchesEl.querySelectorAll('.color-swatch').forEach(s => {
+            s.classList.toggle('selected', s.dataset.color.toLowerCase() === hex.toLowerCase());
+        });
+    }
+
+    gradEl.onmousedown = (e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        _pickSV(e, gradEl, (x, y) => { curS = x * 100; curV = (1 - y) * 100; applyToUI(); });
+    };
+    hueEl.onmousedown = (e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        _pickHue(e, hueEl, (pct) => { curH = pct * 360; applyToUI(); });
+    };
 
     swatchesEl.innerHTML = ROOM_PALETTE.map(hex =>
         `<div class="color-swatch${hex.toLowerCase() === currentHex.toLowerCase() ? ' selected' : ''}" data-color="${hex}" style="background:${hex};"></div>`
     ).join('');
-
     swatchesEl.querySelectorAll('.color-swatch').forEach(el => {
         el.onclick = () => {
-            swatchesEl.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
-            el.classList.add('selected');
-            colorInput.value = el.dataset.color;
-            hexEl.textContent = el.dataset.color;
+            [curH, curS, curV] = _hexToHsv(el.dataset.color);
+            applyToUI();
         };
     });
-    colorInput.oninput = () => {
-        hexEl.textContent = colorInput.value;
-        swatchesEl.querySelectorAll('.color-swatch').forEach(s => {
-            s.classList.toggle('selected', s.dataset.color.toLowerCase() === colorInput.value.toLowerCase());
-        });
+
+    hexInput.value = currentHex.replace('#', '').toUpperCase();
+    hexInput.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+            const v = hexInput.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+            if (v.length === 6) {
+                [curH, curS, curV] = _hexToHsv('#' + v);
+                applyToUI();
+            }
+        }
     };
+    hexInput.onblur = () => {
+        const v = hexInput.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+        if (v.length === 6) {
+            [curH, curS, curV] = _hexToHsv('#' + v);
+            applyToUI();
+        }
+    };
+
+    applyToUI();
     modal.classList.add('active');
+}
+
+function _pickSV(e, el, onChange) {
+    const rect = el.getBoundingClientRect();
+    function move(ev) {
+        const cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+        const cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
+        const x = Math.max(0, Math.min(1, (cx - rect.left) / rect.width));
+        const y = Math.max(0, Math.min(1, (cy - rect.top) / rect.height));
+        onChange(x, y);
+    }
+    move(e);
+    function onMove(ev) { ev.preventDefault(); move(ev); }
+    function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+}
+function _pickHue(e, el, onChange) {
+    const rect = el.getBoundingClientRect();
+    function move(ev) {
+        const cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+        const x = Math.max(0, Math.min(1, (cx - rect.left) / rect.width));
+        onChange(x);
+    }
+    move(e);
+    function onMove(ev) { ev.preventDefault(); move(ev); }
+    function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
 }
 
 const colorPickerConfirm = document.getElementById('colorPickerConfirm');
@@ -3129,7 +3239,8 @@ if (colorPickerConfirm) {
     colorPickerConfirm.onclick = async () => {
         const roomName = selectedColorRoom;
         if (!roomName) return;
-        const hex = document.getElementById('colorPickerInput').value;
+        const hex = '#' + document.getElementById('pickerHexInput').value.replace('#', '');
+        if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
         const newColor = { bg: hex + '20', border: hex, label: hex };
         roomColorMap[roomName] = newColor;
         const room = roomList.find(r => r.name === roomName);

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260805c" />
+  <link rel="stylesheet" href="style.css?v=20260806a" />
   <title>大月曆預約系統</title>
 </head>
 <body>
@@ -626,16 +626,32 @@
       <div class="modal-header">
         <h3 id="colorPickerTitle">調整房間顏色</h3>
         <div class="header-right">
-          <button class="btn-close-view"><i class="fa-solid fa-xmark"></i></button>
+          <button class="btn-close-view" onclick="document.getElementById('colorPickerModal').classList.remove('active')"><i class="fa-solid fa-xmark"></i></button>
         </div>
       </div>
       <div class="add-event-body">
-        <div id="colorSwatches" class="color-swatches"></div>
-        <div class="color-custom-row">
-          <label style="font-size:13px;color:#666;">自訂</label>
-          <input type="color" id="colorPickerInput" value="#9e5167">
-          <span id="colorPickerHex" style="font-size:13px;color:#333;font-family:monospace;"></span>
+        <div class="picker-gradient-wrap">
+          <div class="picker-gradient" id="pickerGradient">
+            <div class="picker-sv-white"></div>
+            <div class="picker-sv-black"></div>
+            <div class="picker-marker" id="pickerMarker"></div>
+          </div>
         </div>
+        <div class="picker-hue-wrap">
+          <div class="picker-hue" id="pickerHue">
+            <div class="picker-hue-marker" id="pickerHueMarker"></div>
+          </div>
+        </div>
+        <div class="picker-info-row">
+          <div class="picker-preview-current" id="pickerPreviewCur"></div>
+          <div class="picker-preview-new" id="pickerPreviewNew"></div>
+          <div class="picker-hex-wrap">
+            <span class="picker-hex-hash">#</span>
+            <input type="text" id="pickerHexInput" class="picker-hex-input" maxlength="6" spellcheck="false" autocomplete="off">
+          </div>
+        </div>
+        <div class="picker-palette-label">快速色票</div>
+        <div id="colorSwatches" class="color-swatches"></div>
         <button id="colorPickerConfirm" class="btn-add-main" style="width:100%;">確認</button>
       </div>
     </div>
@@ -658,7 +674,7 @@
     <div class="loading-text">載入中…</div>
   </div>
 
-  <script src="script.js?v=20260805c"></script>
+  <script src="script.js?v=20260806a"></script>
 </body>
 </html>
 
