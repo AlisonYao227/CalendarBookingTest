@@ -593,6 +593,56 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
   .event-label { font-size: 7px !important; width: 100% !important; }
 }
 
+/* Paste bar (Outlook-style copy/paste) */
+.paste-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 11000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  padding: 10px 14px;
+  max-width: 92vw;
+  flex-wrap: wrap;
+}
+.paste-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #333;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.paste-bar-info i { color: var(--primary-color); }
+.paste-bar input[type="date"] {
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.paste-bar-btn {
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #333;
+  padding: 6px 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.paste-bar-btn:hover { background: #f2f0fa; }
+.paste-bar-btn.paste-primary {
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+}
+.paste-bar-btn.paste-primary:hover { opacity: 0.9; }
+
 /* Loading spinner */
 .loading-spinner {
   position: fixed;

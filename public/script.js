@@ -70,6 +70,10 @@ let currentViewIndex = -1; // 用於追蹤當前查看的事件索引
 let currentImportSkipList = [];
 let currentImportInfoList = [];
 
+// 複製/貼上預約（Outlook 式）：僅日期改變，時間/活動名/房間/負責人保持不變
+let copiedEvent = null;
+let pasteRequested = false;
+
 // 新增：回收站（從後端載入 is_deleted=1 的房間）
 let trashRoomList = [];
 let selectedCalendarDate = new Date(); // 記住使用者點擊/滑鼠hover的日期，預設今日
@@ -306,6 +310,80 @@ if(btnViewNote){
         document.getElementById('noteModal').classList.add('active');
     };
 }
+
+// ===== 複製/貼上預約（Outlook 式）=====
+function showPasteBar() {
+    const bar = document.getElementById('pasteBar');
+    if (!bar || !copiedEvent) return;
+    const textEl = document.getElementById('pasteBarText');
+    const timeStr = copiedEvent.startTime ? `${copiedEvent.startTime}-${copiedEvent.endTime}` : '全天';
+    textEl.textContent = `已複製：${copiedEvent.name}｜${copiedEvent.room} ${timeStr}`;
+    const dateInput = document.getElementById('pasteDateInput');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = selectedDateStr || getTodayStr();
+    }
+    bar.style.display = 'flex';
+}
+function hidePasteBar() {
+    const bar = document.getElementById('pasteBar');
+    if (bar) bar.style.display = 'none';
+}
+function copyEventToClipboard(ev) {
+    copiedEvent = { ...ev };
+    delete copiedEvent.id;
+    pasteRequested = false;
+    showPasteBar();
+}
+
+// 詳情視窗內的 🧾 複製按鈕
+const btnCopyDetail = document.getElementById('btnCopyDetail');
+if(btnCopyDetail){
+    btnCopyDetail.onclick = () => {
+        const ev = eventsData[currentViewIndex];
+        if (!ev) return;
+        copyEventToClipboard(ev);
+        btnCopyDetail.innerHTML = '<i class="fa-solid fa-check"></i>';
+        setTimeout(() => { btnCopyDetail.innerHTML = '<i class="fa-regular fa-copy"></i>'; }, 1500);
+    };
+}
+
+// 貼上浮動列按鈕
+const pasteApplyBtn = document.getElementById('pasteApplyBtn');
+if(pasteApplyBtn){
+    pasteApplyBtn.onclick = () => {
+        if (!copiedEvent) return;
+        const dateInput = document.getElementById('pasteDateInput');
+        const target = dateInput && dateInput.value ? dateInput.value : (selectedDateStr || getTodayStr());
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(target)) { alert("請選擇有效的目標日期"); return; }
+        pasteRequested = true;
+        openBookingForm(target);
+    };
+}
+const pasteClearBtn = document.getElementById('pasteClearBtn');
+if(pasteClearBtn){
+    pasteClearBtn.onclick = () => {
+        copiedEvent = null;
+        pasteRequested = false;
+        hidePasteBar();
+    };
+}
+
+// 鍵盤快捷鍵：Ctrl+C 複製詳情視窗中的預約；Ctrl+V 貼上
+document.addEventListener('keydown', (e) => {
+    const tag = (document.activeElement && document.activeElement.tagName) || '';
+    const inField = ['INPUT', 'SELECT', 'TEXTAREA'].includes(tag) || document.activeElement && document.activeElement.isContentEditable;
+    if (e.ctrlKey || e.metaKey) {
+        if ((e.key === 'c' || e.key === 'C') && viewDetailModal.classList.contains('active') && !inField) {
+            e.preventDefault();
+            const ev = eventsData[currentViewIndex];
+            if (ev) { copyEventToClipboard(ev); }
+        } else if ((e.key === 'v' || e.key === 'V') && copiedEvent && !inField) {
+            e.preventDefault();
+            pasteRequested = true;
+            openBookingForm(selectedDateStr || getTodayStr());
+        }
+    }
+});
 
 // 複製備註（含 Windows/非 HTTPS 環境 fallback）
 function copyTextToClipboard(text) {
@@ -1476,6 +1554,8 @@ function renderMonthView() {
         dayDiv.onclick = () => {
             selectedDateStr = dateStr;
             selectedCalendarDate = new Date(dateStr);
+            const pasteDateInput = document.getElementById('pasteDateInput');
+            if (pasteDateInput && copiedEvent) pasteDateInput.value = dateStr;
             openBookingForm(dateStr);
         };
     });
@@ -1904,16 +1984,47 @@ function openBookingForm(dateStr, index = -1) {
     };
 
     if (index === -1) {
-        formTitle.innerText = `新增預約 (${dateStr})`;
-        document.getElementById("eventTitle").value = "";
-        if(empList.length > 0){
-            document.getElementById("employeeName").value = empList[0].name;
+        const isPaste = pasteRequested && copiedEvent;
+        formTitle.innerText = isPaste ? `新增預約（已貼上）(${dateStr})` : `新增預約 (${dateStr})`;
+        document.getElementById("eventTitle").value = isPaste ? copiedEvent.name : "";
+        document.getElementById("eventNote").value = isPaste ? (copiedEvent.note || '') : "";
+
+        if (isPaste) {
+            // 貼上：活動名/時間/房間/負責人沿用複製內容，僅日期改變
+            document.getElementById("startTime").value = copiedEvent.startTime || "";
+            document.getElementById("endTime").value = copiedEvent.endTime || "";
+
+            const empMatch = empList.some(emp => emp.name === copiedEvent.employee);
+            if (empMatch) {
+                empSelect.value = copiedEvent.employee;
+            } else if (copiedEvent.employee) {
+                empSelect.value = "_custom_emp";
+                const cEmp = document.getElementById("customEmpInput");
+                if (cEmp) { cEmp.value = copiedEvent.employee; cEmp.style.display = "block"; }
+            } else if (empList.length > 0) {
+                empSelect.value = empList[0].name;
+            }
+
+            const roomMatch = roomList.some(r => r.name === copiedEvent.room);
+            if (roomMatch) {
+                roomSelect.value = copiedEvent.room;
+            } else if (copiedEvent.room) {
+                roomSelect.value = "_custom_other";
+                customRoomInput.style.display = "block";
+                customRoomInput.value = copiedEvent.room;
+            } else if (roomList.length > 0) {
+                roomSelect.value = roomList[0].name;
+            }
+            pasteRequested = false;
+        } else {
+            if(empList.length > 0){
+                document.getElementById("employeeName").value = empList[0].name;
+            }
+            // 新建預約預設第一個房間
+            if(roomList.length > 0){
+                roomSelect.value = roomList[0].name;
+            }
         }
-        // 新建預約預設第一個房間
-        if(roomList.length > 0){
-            roomSelect.value = roomList[0].name;
-        }
-        document.getElementById("eventNote").value = "";
     } else {
         const ev = eventsData[index];
         formTitle.innerText = `編輯預約 (${dateStr})`;
