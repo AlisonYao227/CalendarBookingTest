@@ -376,8 +376,7 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
   cursor: pointer;
 }
 
-.event-label.room-vip { background: #ab47bc; }
-.event-label.room-eds { background: #7e57c2; }
+
 
 /* Modal Styles */
 .modal-overlay {

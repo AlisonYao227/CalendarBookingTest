@@ -88,23 +88,27 @@ let filterRoom = "";
 
 const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 // 梵高油畫風格房間配色：互補色對比鮮明（紅綠/藍橙/黃紫），取深色系以確保白字可讀、觀感舒適
+// 柔和高級感色系（低飽和、深色調，適合白字，共 20 色，橫跨全色相）
 const ROOM_PALETTE = [
-  "#d32f2f", "#c2185b", "#ad1457", "#e64a19", "#ef6c00",
-  "#b8860b", "#827717", "#2e7d32", "#43a047", "#00897b",
-  "#00838f", "#0277bd", "#1565c0", "#303f9f", "#5e35b1",
-  "#7b1fa2", "#6d4c41", "#455a64", "#00695c"
+  '#9e5167', '#96793b', '#8a5a3a',           // 暖：玫瑰、蜂蜜、赭
+  '#507d5d', '#6a7a52', '#5a7a72',           // 綠：鼠尾草、橄欖、青瓷
+  '#4e7492', '#4a6880', '#5b6e8f',           // 藍：鋼藍、丹寧、板岩
+  '#7a5685', '#6d5a90', '#8a5a70',           // 紫：梅子、薰衣草、玫瑰灰
+  '#8c6d4a', '#6d5a4a', '#6d6e52',           // 土：可可、樹皮、苔
+  '#3f7571', '#4a7d6b',                       // 青： teal、翠玉
+  '#706078', '#80584a', '#505870'            // 中性灰調補充
 ];
 
 // 房間配色持久化存儲
 // 注意：Classroom 1 / Classroom 2 已永久刪除，不再由 server 重新建立；以下兩項僅作為「舊預約」的穩定配色參考
 let roomColorMap = {
-  "Classroom 1": { bg: "#1565c020", border: "#1565c0", label: "#1565c0" },
-  "Classroom 2": { bg: "#ef6c0020", border: "#ef6c00", label: "#ef6c00" },
-  "VIP Room":    { bg: "#ad145720", border: "#ad1457", label: "#ad1457" },
-  "EDS":         { bg: "#00897b20", border: "#00897b", label: "#00897b" }
+  "Classroom 1": { bg: "#4e749220", border: "#4e7492", label: "#4e7492" },
+  "Classroom 2": { bg: "#96793b20", border: "#96793b", label: "#96793b" },
+  "VIP Room":    { bg: "#9e516720", border: "#9e5167", label: "#9e5167" },
+  "EDS":         { bg: "#3f757120", border: "#3f7571", label: "#3f7571" }
 };
 
-// 隨機生成房間配色函數【修復版：先順序取用未使用顏色，用完才循環】
+// 隨機生成房間配色函數：先順序取用未使用色，用完才循環
 function generateRandomRoomColor() {
   const colorPool = ROOM_PALETTE;
 
@@ -118,7 +122,7 @@ function generateRandomRoomColor() {
     // 還有剩餘未使用顏色 → 從剩餘池隨機抽取，保證不重複
     border = availableColors[Math.floor(Math.random() * availableColors.length)];
   } else {
-    // 19種全部用完，允許重複，隨機取全部池內顏色
+    // 20種全部用完，允許重複，隨機取全部池內顏色
     border = colorPool[Math.floor(Math.random() * colorPool.length)];
   }
 
@@ -134,8 +138,8 @@ function generateRandomRoomColor() {
 function getRoomStyle(roomName) {
     // 固定內建房間白名單，永遠強制使用原生配色，不隨機生成
     const builtInRooms = {
-        "VIP Room":    { bg: "#ad145720", border: "#ad1457", label: "#ad1457" },
-        "EDS":         { bg: "#00897b20", border: "#00897b", label: "#00897b" }
+        "VIP Room":    { bg: "#9e516720", border: "#9e5167", label: "#9e5167" },
+        "EDS":         { bg: "#3f757120", border: "#3f7571", label: "#3f7571" }
     };
     if(builtInRooms[roomName]){
         return builtInRooms[roomName];
@@ -434,7 +438,7 @@ async function loadAllData() {
                     try { roomColorMap[r.name] = JSON.parse(r.colorData); } catch(e) {}
                 }
             });
-            // 遷移：舊版紫/藍紫相近色系一律重配成梵高對比色系，並持久化（內建房間由 getRoomStyle 覆蓋，不在此處理）
+            // 遷移：舊版高飽和色系一律重配成柔和低飽和色系，並持久化（內建房間由 getRoomStyle 覆蓋，不在此處理）
             const paletteSet = new Set(ROOM_PALETTE.map(c => c.toLowerCase()));
             const builtInNames = ['VIP Room', 'EDS'];
             roomList.forEach(r => {
