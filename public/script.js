@@ -1886,6 +1886,17 @@ function showEventDetails(index) {
 }
 
 function openBookingForm(dateStr, index = -1) {
+    // 設定 select 數值；若選項不存在（例如非 30 分鐘刻度的時間），自動加入暫存選項再選取
+    function setSelectValue(el, value) {
+        if (!el || !value) return;
+        if (!Array.from(el.options).some(o => o.value === value)) {
+            const opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = value;
+            el.appendChild(opt);
+        }
+        el.value = value;
+    }
     selectedDateStr = dateStr;
     currentViewIndex = index;
     const formTitle = document.getElementById('formTitle');
@@ -1991,8 +2002,8 @@ function openBookingForm(dateStr, index = -1) {
 
         if (isPaste) {
             // 貼上：活動名/時間/房間/負責人沿用複製內容，僅日期改變
-            document.getElementById("startTime").value = copiedEvent.startTime || "";
-            document.getElementById("endTime").value = copiedEvent.endTime || "";
+            setSelectValue(document.getElementById("startTime"), copiedEvent.startTime);
+            setSelectValue(document.getElementById("endTime"), copiedEvent.endTime);
 
             const empMatch = empList.some(emp => emp.name === copiedEvent.employee);
             if (empMatch) {
@@ -2030,8 +2041,8 @@ function openBookingForm(dateStr, index = -1) {
         formTitle.innerText = `編輯預約 (${dateStr})`;
         document.getElementById("eventTitle").value = ev.name;
         document.getElementById("employeeName").value = ev.employee;
-        document.getElementById("startTime").value = ev.startTime;
-        document.getElementById("endTime").value = ev.endTime;
+        setSelectValue(document.getElementById("startTime"), ev.startTime);
+        setSelectValue(document.getElementById("endTime"), ev.endTime);
         document.getElementById("eventNote").value = ev.note || '';
 
         // 回填房間下拉
