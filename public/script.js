@@ -87,7 +87,10 @@ let empList = [];
 
 // 篩選狀態
 let filterEmployee = "";
-let filterRoom = "";
+let filterRooms = [];
+function _isRoomFiltered(room) {
+    return filterRooms.length > 0 && !filterRooms.includes(room);
+}
 
 const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 // 梵高油畫風格房間配色：互補色對比鮮明（紅綠/藍橙/黃紫），取深色系以確保白字可讀、觀感舒適
@@ -131,6 +134,94 @@ function _saveUserOverride(roomName) {
     } catch(e) {}
 }
 _loadUserOverrides();
+
+// 頂部「房間」多選篩選下拉選單（全域）
+function buildRoomMultiFilter() {
+    const btn = document.getElementById('roomFilterBtn');
+    const panel = document.getElementById('roomFilterPanel');
+    const listEl = document.getElementById('roomFilterList');
+    const allCb = document.getElementById('roomFilterAll');
+    if (!btn || !panel || !listEl || !allCb) return;
+
+    // 依 roomList 重建房間勾選清單
+    listEl.innerHTML = roomList.map(r =>
+        `<label class="multi-option"><input type="checkbox" value="${r.name.replace(/"/g, '&quot;')}">${r.name}</label>`
+    ).join('');
+
+    const labelEl = document.getElementById('roomFilterLabel');
+
+    function refresh() {
+        listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = filterRooms.includes(cb.value);
+        });
+        allCb.checked = filterRooms.length === 0;
+        labelEl.textContent = filterRooms.length === 0 ? '全部房間' : `已選 ${filterRooms.length} 間`;
+        btn.classList.toggle('has-selection', filterRooms.length > 0);
+    }
+
+    btn.onclick = (e) => {
+        e.stopPropagation();
+        const open = panel.style.display === 'block';
+        panel.style.display = open ? 'none' : 'block';
+    };
+    document.addEventListener('click', (e) => {
+        if (!panel.contains(e.target) && !btn.contains(e.target)) {
+            panel.style.display = 'none';
+        }
+    });
+
+    allCb.onchange = () => {
+        if (allCb.checked) {
+            filterRooms = [];
+            _syncRoomChips();
+        }
+        refresh();
+        updateView();
+    };
+
+    listEl.addEventListener('change', (e) => {
+        const cb = e.target;
+        if (cb.checked) {
+            if (!filterRooms.includes(cb.value)) filterRooms.push(cb.value);
+        } else {
+            filterRooms = filterRooms.filter(v => v !== cb.value);
+        }
+        refresh();
+        _syncRoomChips();
+        updateView();
+    });
+
+    refresh();
+}
+
+// 依 filterRooms 同步左側邊欄房間色塊的選取狀態（不重建）
+function _syncRoomChips() {
+    const wrap = document.getElementById('roomChips');
+    if (!wrap) return;
+    wrap.querySelectorAll('.room-chip').forEach(el => {
+        const room = el.dataset.room || '';
+        if (room === '') {
+            el.classList.toggle('active', filterRooms.length === 0);
+        } else {
+            el.classList.toggle('active', filterRooms.includes(room));
+        }
+    });
+}
+
+// 依 filterRooms 同步頂部多選下拉選單的顯示文字與勾選狀態（不重建）
+function _refreshRoomMultiFilter() {
+    const listEl = document.getElementById('roomFilterList');
+    const allCb = document.getElementById('roomFilterAll');
+    const labelEl = document.getElementById('roomFilterLabel');
+    const btn = document.getElementById('roomFilterBtn');
+    if (!listEl || !allCb || !labelEl || !btn) return;
+    listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.checked = filterRooms.includes(cb.value);
+    });
+    allCb.checked = filterRooms.length === 0;
+    labelEl.textContent = filterRooms.length === 0 ? '全部房間' : `已選 ${filterRooms.length} 間`;
+    btn.classList.toggle('has-selection', filterRooms.length > 0);
+}
 
 // 隨機生成房間配色函數：先順序取用未使用色，用完才循環
 function generateRandomRoomColor() {
@@ -514,45 +605,27 @@ async function loadAllData() {
 // 初始化篩選下拉選單
 function initFilterDropdowns() {
     const filterEmp = document.getElementById('filterEmployee');
-    const filterRoomEl = document.getElementById('filterRoom');
-    if (!filterEmp || !filterRoomEl) return;
-    
-    // 員工篩選
-    filterEmp.innerHTML = '<option value="">全部員工</option>';
-    empList.forEach(emp => {
-        const opt = document.createElement('option');
-        opt.value = emp.name;
-        opt.textContent = emp.name;
-        filterEmp.appendChild(opt);
-    });
-    
-    // 房間篩選
-    filterRoomEl.innerHTML = '<option value="">全部房間</option>';
-    roomList.forEach(room => {
-        const opt = document.createElement('option');
-        opt.value = room.name;
-        opt.textContent = room.name;
-        filterRoomEl.appendChild(opt);
-    });
-    
-    // 事件監聽
-    filterEmp.onchange = (e) => {
-        filterEmployee = e.target.value;
-        updateView();
-    };
-    filterRoomEl.onchange = (e) => {
-        filterRoom = e.target.value;
-        updateView();
-    };
+    if (filterEmp) {
+        filterEmp.innerHTML = '<option value="">全部員工</option>';
+        empList.forEach(emp => {
+            const opt = document.createElement('option');
+            opt.value = emp.name;
+            opt.textContent = emp.name;
+            filterEmp.appendChild(opt);
+        });
+        filterEmp.onchange = (e) => {
+            filterEmployee = e.target.value;
+            updateView();
+        };
+    }
+    buildRoomMultiFilter();
 }
-
-
 
 // 取得篩選後的事件列表
 function getFilteredData() {
     return eventsData.filter(ev => {
         if (filterEmployee && ev.employee !== filterEmployee) return false;
-        if (filterRoom && ev.room !== filterRoom) return false;
+        if (_isRoomFiltered(ev.room)) return false;
         return true;
     });
 }
@@ -1545,7 +1618,7 @@ function renderMonthView() {
             const isOnEndDate = evEndDate === dateStr && evEndDate !== ev.date;
             if (!isOnStartDate && !isOnEndDate) return;
             if (filterEmployee && ev.employee !== filterEmployee) return;
-            if (filterRoom && ev.room !== filterRoom) return;
+            if (_isRoomFiltered(ev.room)) return;
             const style = getRoomStyle(ev.room);
             const dispRoom = getCompactRoomText(ev.room);
             const prefix = isOnEndDate ? '[跨日] ' : '';
@@ -1556,7 +1629,7 @@ function renderMonthView() {
         todosData.forEach((todo) => {
             if (todo.startDate <= dateStr && todo.endDate >= dateStr) {
                 if (filterEmployee && todo.employee !== filterEmployee) return;
-                if (filterRoom && todo.room !== filterRoom) return;
+                if (_isRoomFiltered(todo.room)) return;
                 let timeStr = todo.isAllDay ? '' : (todo.startTime || '');
                 if (timeStr && todo.endTime) timeStr += '-' + todo.endTime;
                 let dispRoom = todo.room ? getCompactRoomText(todo.room) : '';
@@ -1673,7 +1746,7 @@ function createDayColumn(dateStr) {
 function getDayExtrasHtml(dateStr) {
     const dayTodos = (todosData || []).filter(todo => {
         if (filterEmployee && todo.employee !== filterEmployee) return false;
-        if (filterRoom && todo.room !== filterRoom) return false;
+        if (_isRoomFiltered(todo.room)) return false;
         return todo.startDate <= dateStr && todo.endDate >= dateStr;
     });
     const dayLeaves = getLeavesForDate ? getLeavesForDate(dateStr).filter(l => {
@@ -1701,7 +1774,7 @@ function renderEventsIntoColumn(columnElement, dateStr) {
         const isOnEnd = ev.endDate && ev.endDate === dateStr && ev.endDate !== ev.date;
         if (!isOnStart && !isOnEnd) return false;
         if (filterEmployee && ev.employee !== filterEmployee) return false;
-        if (filterRoom && ev.room !== filterRoom) return false;
+        if (_isRoomFiltered(ev.room)) return false;
         return true;
     });
     const timeGroup = {};
@@ -2304,7 +2377,7 @@ function getFilterEvents(range){
     });
     // 套用員工/房間篩選
     if (filterEmployee) list = list.filter(ev => ev.employee === filterEmployee);
-    if (filterRoom) list = list.filter(ev => ev.room === filterRoom);
+    if (filterRooms.length) list = list.filter(ev => filterRooms.includes(ev.room));
     list.sort((a,b)=>{
         const d1 = a.date + " " + a.startTime;
         const d2 = b.date + " " + b.startTime;
@@ -2395,7 +2468,7 @@ function getFilteredTodos(range){
         list = list.filter(t => t.startDate <= we && t.endDate >= ws);
     }
     if(filterEmployee) list = list.filter(t => t.employee === filterEmployee);
-    if(filterRoom) list = list.filter(t => t.room === filterRoom);
+    if(filterRooms.length) list = list.filter(t => filterRooms.includes(t.room));
     return list;
 }
 
@@ -2607,12 +2680,12 @@ async function exportPdf(range){
                     (eventsData || []).forEach(ev => {
                         if (ev.date !== dateStr) return;
                         if (filterEmployee && ev.employee !== filterEmployee) return;
-                        if (filterRoom && ev.room !== filterRoom) return;
+                        if (_isRoomFiltered(ev.room)) return;
                         items.push({ kind: 'event', text: `${ev.startTime} ${ev.name} - ${ev.room}`, room: ev.room });
                     });
                     (todosData || []).forEach(todo => {
                         if (filterEmployee && todo.employee !== filterEmployee) return;
-                        if (filterRoom && todo.room !== filterRoom) return;
+                        if (_isRoomFiltered(todo.room)) return;
                         if (todo.startDate <= dateStr && todo.endDate >= dateStr) {
                             items.push({ kind: 'todo', text: (todo.startTime || '') + ' ' + todo.title });
                         }
@@ -2750,7 +2823,7 @@ async function exportPdf(range){
             const items = [];
             (todosData || []).forEach(todo => {
                 if (filterEmployee && todo.employee !== filterEmployee) return;
-                if (filterRoom && todo.room !== filterRoom) return;
+                if (_isRoomFiltered(todo.room)) return;
                 if (todo.startDate <= dateStr && todo.endDate >= dateStr) {
                     items.push({ _type: 'todo', name: todo.title, startTime: todo.startTime || '' });
                 }
@@ -3082,23 +3155,31 @@ function getCompactRoomText(roomName){
     return words.map(w => /^[A-Z]+$/.test(w) ? w : w.charAt(0).toUpperCase()).join('');
 }
 
-// ====== 左側邊欄：房間色塊 ======
+// ====== 左側邊欄：房間色塊（多選） ======
 function renderRoomChips() {
     const wrap = document.getElementById('roomChips');
     if (!wrap) return;
     const allRooms = [...roomList];
-    let html = `<button class="room-chip${!filterRoom ? ' active' : ''}" data-room="" style="border-left:3px solid #ccc;"><span class="chip-dot" style="background:#ccc;"></span>全部</button>`;
+    let html = `<button class="room-chip${filterRooms.length === 0 ? ' active' : ''}" data-room="" style="border-left:3px solid #ccc;"><span class="chip-dot" style="background:#ccc;"></span>全部</button>`;
     allRooms.forEach(r => {
         const style = getRoomStyle(r.name);
-        html += `<button class="room-chip${filterRoom === r.name ? ' active' : ''}" data-room="${r.name.replace(/"/g, '&quot;')}" style="border-left:3px solid ${style.border};background:${style.bg}20;">
+        const active = filterRooms.includes(r.name) ? ' active' : '';
+        html += `<button class="room-chip${active}" data-room="${r.name.replace(/"/g, '&quot;')}" style="border-left:3px solid ${style.border};background:${style.bg}20;">
             <span class="chip-dot" style="background:${style.border};"></span>${r.name}</button>`;
     });
     wrap.innerHTML = html;
     wrap.querySelectorAll('.room-chip').forEach(el => {
         el.onclick = () => {
             const room = el.dataset.room || '';
-            filterRoom = room;
+            if (room === '') {
+                filterRooms = [];
+            } else if (filterRooms.includes(room)) {
+                filterRooms = filterRooms.filter(v => v !== room);
+            } else {
+                filterRooms.push(room);
+            }
             renderRoomChips();
+            _refreshRoomMultiFilter();
             updateView();
         };
     });

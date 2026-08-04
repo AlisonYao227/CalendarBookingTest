@@ -84,6 +84,58 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
   max-width: 140px;
 }
 
+/* 房間多選篩選下拉 */
+.multi-select {
+  position: relative;
+  display: inline-block;
+}
+.multi-select-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 120px;
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.multi-select-btn.has-selection {
+  border-color: var(--primary-color);
+  background: #eef4ff;
+  color: var(--primary-color);
+}
+.multi-select-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 1000;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.14);
+  padding: 6px;
+  min-width: 150px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.multi-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.multi-option:hover { background: #f5f5f5; }
+.multi-option input[type="checkbox"] { margin: 0; cursor: pointer; accent-color: var(--primary-color); }
+.multi-option-all {
+  border-bottom: 1px solid #eee;
+  margin-bottom: 4px;
+  padding-bottom: 6px;
+  font-weight: 600;
+}
+
 /* 讓時間軸在全螢幕下更長 */
 .timeline-container .day-view-container {
   height: auto;

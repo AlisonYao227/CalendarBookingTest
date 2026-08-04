@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260806d" />
+  <link rel="stylesheet" href="style.css?v=20260807a" />
   <title>大月曆預約系統</title>
 </head>
 <body>
@@ -130,9 +130,17 @@
     <select id="filterEmployee" class="filter-select" title="按員工篩選">
       <option value="">全部員工</option>
     </select>
-    <select id="filterRoom" class="filter-select" title="按房間篩選">
-      <option value="">全部房間</option>
-    </select>
+    <!-- 房間多選篩選 -->
+    <div class="multi-select" id="roomFilterMulti">
+      <button type="button" class="filter-select multi-select-btn" id="roomFilterBtn" title="按房間篩選（可多選）">
+        <span id="roomFilterLabel">全部房間</span>
+        <i class="fa-solid fa-chevron-down" style="font-size:10px;margin-left:6px;"></i>
+      </button>
+      <div class="multi-select-panel" id="roomFilterPanel" style="display:none;">
+        <label class="multi-option multi-option-all"><input type="checkbox" id="roomFilterAll" checked>全部</label>
+        <div id="roomFilterList"></div>
+      </div>
+    </div>
 
     
     <!-- 匯入Excel 按鈕+資訊提示 -->
@@ -674,7 +682,7 @@
     <div class="loading-text">載入中…</div>
   </div>
 
-  <script src="script.js?v=20260806b"></script>
+  <script src="script.js?v=20260807a"></script>
 </body>
 </html>
 
