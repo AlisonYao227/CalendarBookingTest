@@ -133,8 +133,8 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
 .day:hover { background: #f0ecf8; }
 .day.today { 
   background: var(--day-today-bg); /* 今日格子底色由變數控制 */
-  font-weight: bold; 
 }
+.day.today .day-number { font-weight: bold; }
 .day.today::before { content: "TODAY"; font-size: 10px; color: #4a90e2; position: absolute; right: 5px; top: 5px; }
 
 .day-number { font-size: 1.1rem; margin-bottom: 5px; display: block; }
@@ -243,6 +243,7 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
   color: #2c3e50;
   padding: 3px;
   font-size: 10px;
+  font-weight: 400;
   line-height: 1.25;
   border-radius: 3px;
   overflow: hidden;
@@ -363,6 +364,7 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
 /* Event Label */
 .event-label {
   font-size: 11px;
+  font-weight: 400;
   background: var(--primary-color);
   color: white;
   padding: 2px 5px;
