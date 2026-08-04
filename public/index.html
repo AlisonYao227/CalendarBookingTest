@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260805a" />
+  <link rel="stylesheet" href="style.css?v=20260805c" />
   <title>大月曆預約系統</title>
 </head>
 <body>
@@ -620,6 +620,27 @@
     </div>
   </div>
 
+  <!-- 房間顏色選擇器 -->
+  <div class="modal-overlay" id="colorPickerModal">
+    <div class="color-picker-card">
+      <div class="modal-header">
+        <h3 id="colorPickerTitle">調整房間顏色</h3>
+        <div class="header-right">
+          <button class="btn-close-view"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+      <div class="add-event-body">
+        <div id="colorSwatches" class="color-swatches"></div>
+        <div class="color-custom-row">
+          <label style="font-size:13px;color:#666;">自訂</label>
+          <input type="color" id="colorPickerInput" value="#9e5167">
+          <span id="colorPickerHex" style="font-size:13px;color:#333;font-family:monospace;"></span>
+        </div>
+        <button id="colorPickerConfirm" class="btn-add-main" style="width:100%;">確認</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 貼上預約浮動列（Outlook 式複製/貼上） -->
   <div id="pasteBar" class="paste-bar" style="display:none;">
     <div class="paste-bar-info">
@@ -637,7 +658,7 @@
     <div class="loading-text">載入中…</div>
   </div>
 
-  <script src="script.js?v=20260805b"></script>
+  <script src="script.js?v=20260805c"></script>
 </body>
 </html>
 

@@ -592,6 +592,47 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
   .event-label { font-size: 7px !important; width: 100% !important; }
 }
 
+/* Room color picker */
+.color-picker-card {
+  background: #fff;
+  width: 320px;
+  max-width: 90vw;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+.color-swatches {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  padding: 4px 0 12px;
+}
+.color-swatch {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+.color-swatch:hover { transform: scale(1.12); }
+.color-swatch.selected { border-color: #333; transform: scale(1.12); }
+.color-custom-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+.color-custom-row input[type="color"] {
+  width: 40px;
+  height: 30px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 1px;
+}
+.room-chip .chip-dot { cursor: pointer; transition: opacity 0.15s; }
+.room-chip .chip-dot:hover { opacity: 0.7; }
+
 /* Paste bar (Outlook-style copy/paste) */
 .paste-bar {
   position: fixed;

@@ -74,6 +74,9 @@ let currentImportInfoList = [];
 let copiedEvent = null;
 let pasteRequested = false;
 
+// 房間顏色選擇器
+let selectedColorRoom = '';
+
 // 新增：回收站（從後端載入 is_deleted=1 的房間）
 let trashRoomList = [];
 let selectedCalendarDate = new Date(); // 記住使用者點擊/滑鼠hover的日期，預設今日
@@ -136,7 +139,9 @@ function generateRandomRoomColor() {
 
 // 取得房間配色，沒有就自動生成並存起來
 function getRoomStyle(roomName) {
-    // 固定內建房間白名單，永遠強制使用原生配色，不隨機生成
+    // 用戶自訂 / 已持久化的配色優先（含色彩選擇器修改過的顏色）
+    if (roomColorMap[roomName]) return roomColorMap[roomName];
+    // 內建房間初始預設（僅在 roomColorMap 尚無此房間時生效）
     const builtInRooms = {
         "VIP Room":    { bg: "#9e516720", border: "#9e5167", label: "#9e5167" },
         "EDS":         { bg: "#3f757120", border: "#3f7571", label: "#3f7571" }
@@ -3074,6 +3079,71 @@ function renderRoomChips() {
             updateView();
         };
     });
+    // 色塊點擊：開啟房間顏色選擇器（不觸發篩選）
+    wrap.querySelectorAll('.chip-dot').forEach(dot => {
+        dot.onclick = (e) => {
+            e.stopPropagation();
+            const room = dot.closest('.room-chip').dataset.room;
+            if (room) showColorPicker(room);
+        };
+    });
+}
+
+// ====== 房間顏色選擇器 ======
+function showColorPicker(roomName) {
+    selectedColorRoom = roomName;
+    const modal = document.getElementById('colorPickerModal');
+    const title = document.getElementById('colorPickerTitle');
+    const swatchesEl = document.getElementById('colorSwatches');
+    const colorInput = document.getElementById('colorPickerInput');
+    const hexEl = document.getElementById('colorPickerHex');
+
+    title.textContent = `調整「${roomName}」顏色`;
+    const currentHex = getRoomStyle(roomName).border;
+    colorInput.value = currentHex;
+    hexEl.textContent = currentHex;
+
+    swatchesEl.innerHTML = ROOM_PALETTE.map(hex =>
+        `<div class="color-swatch${hex.toLowerCase() === currentHex.toLowerCase() ? ' selected' : ''}" data-color="${hex}" style="background:${hex};"></div>`
+    ).join('');
+
+    swatchesEl.querySelectorAll('.color-swatch').forEach(el => {
+        el.onclick = () => {
+            swatchesEl.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+            el.classList.add('selected');
+            colorInput.value = el.dataset.color;
+            hexEl.textContent = el.dataset.color;
+        };
+    });
+    colorInput.oninput = () => {
+        hexEl.textContent = colorInput.value;
+        swatchesEl.querySelectorAll('.color-swatch').forEach(s => {
+            s.classList.toggle('selected', s.dataset.color.toLowerCase() === colorInput.value.toLowerCase());
+        });
+    };
+    modal.classList.add('active');
+}
+
+const colorPickerConfirm = document.getElementById('colorPickerConfirm');
+if (colorPickerConfirm) {
+    colorPickerConfirm.onclick = async () => {
+        const roomName = selectedColorRoom;
+        if (!roomName) return;
+        const hex = document.getElementById('colorPickerInput').value;
+        const newColor = { bg: hex + '20', border: hex, label: hex };
+        roomColorMap[roomName] = newColor;
+        const room = roomList.find(r => r.name === roomName);
+        if (room && room.id) {
+            fetch(`${API_BASE}/rooms/${room.id}/color`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ colorData: JSON.stringify(newColor) })
+            }).catch(() => {});
+        }
+        document.getElementById('colorPickerModal').classList.remove('active');
+        renderRoomChips();
+        updateView();
+    };
 }
 
 // ====== 左側邊欄：迷你月曆 ======
