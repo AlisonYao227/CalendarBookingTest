@@ -607,7 +607,9 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
 .color-picker-card .modal-header {
   padding: 16px 20px 10px;
   position: relative;
+  display: block;
   text-align: center;
+  border-bottom: 1px solid #eee;
 }
 .color-picker-card .modal-header h3 {
   margin: 0;
