@@ -604,6 +604,20 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
 .color-picker-card .add-event-body {
   padding: 16px 20px 20px;
 }
+.color-picker-card .modal-header {
+  padding: 16px 20px 10px;
+  position: relative;
+  text-align: center;
+}
+.color-picker-card .modal-header h3 {
+  margin: 0;
+}
+.color-picker-card .modal-header .header-right {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
 .picker-gradient-wrap { padding: 2px 0 0; }
 .picker-gradient {
   width: 100%;
