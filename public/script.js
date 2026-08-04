@@ -111,6 +111,27 @@ let roomColorMap = {
   "EDS":         { bg: "#3f757120", border: "#3f7571", label: "#3f7571" }
 };
 
+// localStorage 使用者自訂配色持久化（僅存使用者手動挑選過的房間）
+const _UC_KEY = 'userColorOverrides';
+function _loadUserOverrides() {
+    try {
+        const raw = localStorage.getItem(_UC_KEY);
+        if (raw) {
+            const o = JSON.parse(raw);
+            Object.keys(o).forEach(k => { roomColorMap[k] = o[k]; });
+        }
+    } catch(e) {}
+}
+function _saveUserOverride(roomName) {
+    try {
+        const raw = localStorage.getItem(_UC_KEY);
+        const o = raw ? JSON.parse(raw) : {};
+        o[roomName] = roomColorMap[roomName];
+        localStorage.setItem(_UC_KEY, JSON.stringify(o));
+    } catch(e) {}
+}
+_loadUserOverrides();
+
 // 隨機生成房間配色函數：先順序取用未使用色，用完才循環
 function generateRandomRoomColor() {
   const colorPool = ROOM_PALETTE;
@@ -458,6 +479,8 @@ async function loadAllData() {
                     body: JSON.stringify({ colorData: JSON.stringify(color) })
                 }).catch(() => {});
             });
+            // API sync 完成後，重新套用使用者自訂配色（確保使用者手動挑選的顏色不被遷移覆蓋）
+            _loadUserOverrides();
         }
 
         // 載入回收站（is_deleted=1 的房間）
@@ -3243,6 +3266,7 @@ if (colorPickerConfirm) {
         if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
         const newColor = { bg: hex + '20', border: hex, label: hex };
         roomColorMap[roomName] = newColor;
+        _saveUserOverride(roomName);
         const room = roomList.find(r => r.name === roomName);
         if (room && room.id) {
             fetch(`${API_BASE}/rooms/${room.id}/color`, {

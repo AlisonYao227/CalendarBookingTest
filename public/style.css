@@ -601,6 +601,9 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
   box-shadow: 0 10px 25px rgba(0,0,0,0.2);
   overflow: hidden;
 }
+.color-picker-card .add-event-body {
+  padding: 16px 20px 20px;
+}
 .picker-gradient-wrap { padding: 2px 0 0; }
 .picker-gradient {
   width: 100%;
