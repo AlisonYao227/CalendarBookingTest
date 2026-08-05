@@ -1477,7 +1477,195 @@ document.querySelectorAll('.short-input').forEach(input=>{
             }
         };
     }
+
+    // === 活動名稱搜尋統計（獨立於日曆渲染，避免污染既有渲染流程） ===
+    const activitySearchInput = document.getElementById('activitySearchInput');
+    const activitySearchBtn = document.getElementById('activitySearchBtn');
+    const activitySearchKeyword = document.getElementById('activitySearchKeyword');
+    const activitySearchRunBtn = document.getElementById('activitySearchRunBtn');
+    const activitySearchModal = document.getElementById('activitySearchModal');
+    const activitySearchRange = document.getElementById('activitySearchRange');
+
+    const openActivitySearch = () => {
+        if (activitySearchKeyword && activitySearchInput) {
+            activitySearchKeyword.value = activitySearchInput.value;
+        }
+        if (activitySearchModal) activitySearchModal.classList.add('active');
+        runActivitySearch();
+    };
+
+    if (activitySearchBtn) {
+        activitySearchBtn.onclick = (e) => {
+            e.preventDefault();
+            openActivitySearch();
+        };
+    }
+    if (activitySearchInput) {
+        activitySearchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                openActivitySearch();
+            }
+        });
+    }
+    if (activitySearchRunBtn) {
+        activitySearchRunBtn.onclick = () => {
+            if (activitySearchKeyword && activitySearchInput) {
+                activitySearchInput.value = activitySearchKeyword.value;
+            }
+            runActivitySearch();
+        };
+    }
+    if (activitySearchRange) {
+        activitySearchRange.onchange = () => runActivitySearch();
+    }
 });
+
+// ====== 活動名稱搜尋統計（純函數，完全不碰日曆渲染） ======
+function normalizeSearchText(s) {
+    return String(s || '').trim().toLowerCase().replace(/\s+/g, '');
+}
+
+function getActivitySearchRangeBoundary(range) {
+    const now = new Date();
+    if (range === 'last12months') {
+        const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        return { start: getFormattedDate(start), end: getFormattedDate(end) };
+    }
+    if (range === 'thisYear') {
+        return { start: now.getFullYear() + '-01-01', end: now.getFullYear() + '-12-31' };
+    }
+    return { start: null, end: null };
+}
+
+function filterActivitiesByKeyword(keyword) {
+    const kws = String(keyword || '').trim().split(/\s+/).filter(Boolean).map(normalizeSearchText);
+    if (!kws.length) return [];
+    const rangeEl = document.getElementById('activitySearchRange');
+    const { start, end } = getActivitySearchRangeBoundary(rangeEl ? rangeEl.value : 'thisYear');
+    return eventsData.filter(ev => {
+        if (!ev || !ev.name) return false;
+        if (start && (ev.date < start || ev.date > end)) return false;
+        const hay = normalizeSearchText(ev.name);
+        return kws.every(k => hay.includes(k));
+    });
+}
+
+function groupActivitiesByTitle(list) {
+    const groups = new Map();
+    list.forEach(ev => {
+        const name = String(ev.name || '').trim() || '(未命名)';
+        if (!groups.has(name)) groups.set(name, []);
+        groups.get(name).push(ev);
+    });
+    return Array.from(groups.entries())
+        .map(([name, items]) => ({ name, items }))
+        .sort((a, b) => b.items.length - a.items.length);
+}
+
+function getActivitySearchRangeLabel(range) {
+    const map = { thisYear: '今年', last12months: '近12個月', all: '全部' };
+    return map[range] || '今年';
+}
+
+function renderActivitySearchGroups(groups) {
+    const wrap = document.getElementById('activitySearchGroupsWrap');
+    if (!wrap) return;
+    if (!groups.length) {
+        wrap.innerHTML = '<div class="act-search-empty">沒有符合的活動</div>';
+        return;
+    }
+    const max = groups[0].items.length;
+    const total = groups.reduce((acc, g) => acc + g.items.length, 0);
+    const allRow = `<tr data-group="__ALL__" class="active-row"><td><span class="act-group-count">${total}</span></td><td>全部</td><td></td></tr>`;
+    const rows = groups.map(g => {
+        const pct = max ? Math.round((g.items.length / max) * 100) : 0;
+        return `<tr data-group="${escapeHtml(g.name)}">
+            <td><span class="act-group-count">${g.items.length}</span></td>
+            <td>${escapeHtml(g.name)}</td>
+            <td><div class="act-group-bar-wrap"><div class="act-group-bar"><span style="width:${pct}%"></span></div></div></td>
+        </tr>`;
+    }).join('');
+    wrap.innerHTML = `<table class="act-search-table"><thead><tr><th style="width:56px;">筆數</th><th>活動名稱</th><th style="width:120px;">佔比</th></tr></thead><tbody>${allRow}${rows}</tbody></table>`;
+
+    wrap.querySelectorAll('tbody tr').forEach(tr => {
+        tr.addEventListener('click', () => {
+            wrap.querySelectorAll('tbody tr').forEach(r => r.classList.remove('active-row'));
+            tr.classList.add('active-row');
+            const name = tr.dataset.group;
+            const list = name === '__ALL__'
+                ? groups.reduce((acc, g) => acc.concat(g.items), [])
+                : (groups.find(g => g.name === name) || { items: [] }).items;
+            renderActivitySearchDetails(list);
+        });
+    });
+}
+
+function renderActivitySearchDetails(list) {
+    const wrap = document.getElementById('activitySearchDetailWrap');
+    if (!wrap) return;
+    if (!list.length) {
+        wrap.innerHTML = '<div class="act-search-empty">沒有符合的活動</div>';
+        return;
+    }
+    const rows = list.slice().sort((a, b) => (a.date + ' ' + a.startTime).localeCompare(b.date + ' ' + b.startTime)).map(ev => {
+        const timeStr = (ev.startTime || ev.endTime) ? `${ev.startTime || ''}-${ev.endTime || ''}` : '';
+        return `<tr data-date="${ev.date}">
+            <td>${ev.date}</td>
+            <td>${escapeHtml(ev.name)}</td>
+            <td>${escapeHtml(ev.employee || '')}</td>
+            <td>${escapeHtml(ev.room || '')}</td>
+            <td>${timeStr}</td>
+            <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(ev.note || '')}">${escapeHtml(ev.note || '')}</td>
+        </tr>`;
+    }).join('');
+    wrap.innerHTML = `<table class="act-search-table"><thead><tr><th>日期</th><th>活動名稱</th><th>員工</th><th>房間</th><th>時間</th><th>備註</th></tr></thead><tbody>${rows}</tbody></table>`;
+
+    wrap.querySelectorAll('tbody tr').forEach(tr => {
+        tr.addEventListener('click', () => {
+            const dateStr = tr.dataset.date;
+            const modal = document.getElementById('activitySearchModal');
+            if (modal) modal.classList.remove('active');
+            const parts = String(dateStr).split('-').map(Number);
+            selectedCalendarDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            updateView();
+        });
+    });
+}
+
+function runActivitySearch() {
+    const keywordEl = document.getElementById('activitySearchKeyword');
+    const rangeEl = document.getElementById('activitySearchRange');
+    if (!keywordEl) return;
+    const keyword = keywordEl.value;
+    const range = rangeEl ? rangeEl.value : 'thisYear';
+
+    const list = filterActivitiesByKeyword(keyword);
+    const groups = groupActivitiesByTitle(list);
+    const allItems = groups.reduce((acc, g) => acc.concat(g.items), []);
+
+    const summaryEl = document.getElementById('activitySearchSummary');
+    if (summaryEl) {
+        if (!keyword.trim()) {
+            summaryEl.innerHTML = '請輸入活動名稱關鍵字再搜尋';
+        } else {
+            summaryEl.innerHTML = `「<strong>${escapeHtml(keyword.trim())}</strong>」在 <strong>${getActivitySearchRangeLabel(range)}</strong> 共命中 <strong>${list.length}</strong> 筆預約、<strong>${groups.length}</strong> 種名稱組合`;
+        }
+    }
+
+    renderActivitySearchGroups(keyword.trim() ? groups : []);
+    renderActivitySearchDetails(keyword.trim() ? allItems : []);
+}
+
+// ====== HTML 跳脫（避免名稱內含特殊字元破壞結構） ======
+function escapeHtml(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
 
 function populateTodoDropdowns() {
     const todoRoom = document.getElementById('todoRoom');
