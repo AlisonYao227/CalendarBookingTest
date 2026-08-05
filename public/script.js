@@ -1517,7 +1517,16 @@ document.querySelectorAll('.short-input').forEach(input=>{
         };
     }
     if (activitySearchRange) {
-        activitySearchRange.onchange = () => runActivitySearch();
+        const activitySearchCustomRange = document.getElementById('activitySearchCustomRange');
+        const toggleCustomRange = () => {
+            if (!activitySearchCustomRange) return;
+            activitySearchCustomRange.style.display = activitySearchRange.value === 'custom' ? 'flex' : 'none';
+        };
+        toggleCustomRange();
+        activitySearchRange.onchange = () => {
+            toggleCustomRange();
+            runActivitySearch();
+        };
     }
 });
 
@@ -1536,6 +1545,16 @@ function getActivitySearchRangeBoundary(range) {
     if (range === 'thisYear') {
         return { start: now.getFullYear() + '-01-01', end: now.getFullYear() + '-12-31' };
     }
+    if (range === 'custom') {
+        const sEl = document.getElementById('activitySearchCustomStart');
+        const eEl = document.getElementById('activitySearchCustomEnd');
+        const start = (sEl && sEl.value) || '';
+        const end = (eEl && eEl.value) || '';
+        const invalid = !start || !end;
+        let swapped = false;
+        if (!invalid && start > end) { swapped = true; }
+        return { start: start || null, end: end || null, invalid, swapped };
+    }
     return { start: null, end: null };
 }
 
@@ -1543,7 +1562,9 @@ function filterActivitiesByKeyword(keyword) {
     const kws = String(keyword || '').trim().split(/\s+/).filter(Boolean).map(normalizeSearchText);
     if (!kws.length) return [];
     const rangeEl = document.getElementById('activitySearchRange');
-    const { start, end } = getActivitySearchRangeBoundary(rangeEl ? rangeEl.value : 'thisYear');
+    const boundary = getActivitySearchRangeBoundary(rangeEl ? rangeEl.value : 'thisYear');
+    if (boundary.invalid) return [];
+    const { start, end } = boundary;
     return eventsData.filter(ev => {
         if (!ev || !ev.name) return false;
         if (start && (ev.date < start || ev.date > end)) return false;
@@ -1566,6 +1587,13 @@ function groupActivitiesByTitle(list) {
 
 function getActivitySearchRangeLabel(range) {
     const map = { thisYear: '今年', last12months: '近12個月', all: '全部' };
+    if (range === 'custom') {
+        const sEl = document.getElementById('activitySearchCustomStart');
+        const eEl = document.getElementById('activitySearchCustomEnd');
+        const s = (sEl && sEl.value) || '未選';
+        const e = (eEl && eEl.value) || '未選';
+        return `自訂 ${s} ~ ${e}`;
+    }
     return map[range] || '今年';
 }
 
@@ -1641,11 +1669,27 @@ function runActivitySearch() {
     const keyword = keywordEl.value;
     const range = rangeEl ? rangeEl.value : 'thisYear';
 
+    const summaryEl = document.getElementById('activitySearchSummary');
+    if (range === 'custom') {
+        const boundary = getActivitySearchRangeBoundary('custom');
+        if (boundary.invalid) {
+            if (summaryEl) summaryEl.innerHTML = '請先選擇開始與結束日期再搜尋';
+            renderActivitySearchGroups([]);
+            renderActivitySearchDetails([]);
+            return;
+        }
+        if (boundary.swapped && summaryEl) {
+            summaryEl.innerHTML = `<div style="color:#c0392b;">結束日期不能早於開始日期</div>`;
+            renderActivitySearchGroups([]);
+            renderActivitySearchDetails([]);
+            return;
+        }
+    }
+
     const list = filterActivitiesByKeyword(keyword);
     const groups = groupActivitiesByTitle(list);
     const allItems = groups.reduce((acc, g) => acc.concat(g.items), []);
 
-    const summaryEl = document.getElementById('activitySearchSummary');
     if (summaryEl) {
         if (!keyword.trim()) {
             summaryEl.innerHTML = '請輸入活動名稱關鍵字再搜尋';

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260808a" />
+  <link rel="stylesheet" href="style.css?v=20260808b" />
   <title>大月曆預約系統</title>
 </head>
 <body>
@@ -691,7 +691,19 @@
               <option value="thisYear">今年</option>
               <option value="last12months">近12個月</option>
               <option value="all">全部</option>
+              <option value="custom">自訂</option>
             </select>
+          </div>
+          <div class="act-search-custom-range" id="activitySearchCustomRange" style="display:none;">
+            <div class="input-group" style="margin-bottom:0;">
+              <label>開始日期</label>
+              <input type="date" id="activitySearchCustomStart">
+            </div>
+            <span class="act-search-custom-tilde">~</span>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>結束日期</label>
+              <input type="date" id="activitySearchCustomEnd">
+            </div>
           </div>
           <button id="activitySearchRunBtn" class="btn-add-main act-search-run-btn">搜尋</button>
         </div>
@@ -721,7 +733,7 @@
     <div class="loading-text">載入中…</div>
   </div>
 
-  <script src="script.js?v=20260808a"></script>
+  <script src="script.js?v=20260808b"></script>
 </body>
 </html>
 

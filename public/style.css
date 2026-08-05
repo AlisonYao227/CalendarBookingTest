@@ -1083,6 +1083,16 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
   flex-wrap: wrap;
 }
 .act-search-run-btn { padding: 8px 18px; flex: 0 0 auto; }
+.act-search-custom-range {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+.act-search-custom-range .input-group { width: 140px; }
+.act-search-custom-tilde {
+  padding-bottom: 8px;
+  color: #888;
+}
 .act-search-summary {
   margin: 12px 0 4px;
   padding: 10px 12px;
