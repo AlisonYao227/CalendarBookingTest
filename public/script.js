@@ -324,6 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.__CAL_BOOKING_INIT_DONE__ = true;
     console.log('[IMPORT] script version v20260731c (importArmed gate)');
     loadAllData();
+    initSidebarToggle();
     renderAnnouncement();
     initFilterDropdowns();
     // 頁面一載入直接隱藏「當日」選項
@@ -1824,6 +1825,7 @@ function renderMonthView() {
     monthYear.innerText = `${months[month]} ${year}`;
     const firstDay = new Date(year, month, 1).getDay();
     const lastDate = new Date(year, month + 1, 0).getDate();
+    const isMobile = window.matchMedia('(max-width: 900px)').matches;
 
     let html = '';
     for (let i = 0; i < firstDay; i++) html += '<div class="empty"></div>';
@@ -1843,6 +1845,8 @@ function renderMonthView() {
 
         html += `<div class="${dayClasses.join(' ')}" data-date="${dateStr}">${dayInner}`;
 
+        const dots = [];
+
         // reservations
         eventsData.forEach((ev, index) => {
             const evEndDate = ev.endDate || ev.date;
@@ -1851,6 +1855,10 @@ function renderMonthView() {
             if (!isOnStartDate && !isOnEndDate) return;
             if (filterEmployee && ev.employee !== filterEmployee) return;
             if (_isRoomFiltered(ev.room)) return;
+            if (isMobile) {
+                dots.push({ color: getRoomStyle(ev.room).label, title: ev.name });
+                return;
+            }
             const style = getRoomStyle(ev.room);
             const dispRoom = getCompactRoomText(ev.room);
             const prefix = isOnEndDate ? '[跨日] ' : '';
@@ -1862,6 +1870,10 @@ function renderMonthView() {
             if (todo.startDate <= dateStr && todo.endDate >= dateStr) {
                 if (filterEmployee && todo.employee !== filterEmployee) return;
                 if (_isRoomFiltered(todo.room)) return;
+                if (isMobile) {
+                    dots.push({ color: '#f9a825', title: todo.title });
+                    return;
+                }
                 let timeStr = todo.isAllDay ? '' : (todo.startTime || '');
                 if (timeStr && todo.endTime) timeStr += '-' + todo.endTime;
                 let dispRoom = todo.room ? getCompactRoomText(todo.room) : '';
@@ -1874,11 +1886,23 @@ function renderMonthView() {
         const dayLeaves = getLeavesForDate(dateStr);
         dayLeaves.forEach(leave => {
             if (filterEmployee && leave.employee !== filterEmployee) return;
+            if (isMobile) {
+                dots.push({ color: '#4caf50', title: leave.employee + (leave.leaveType ? ' (' + leave.leaveType + ')' : '') });
+                return;
+            }
             const leaveTypeStr = leave.leaveType ? ` (${leave.leaveType})` : '';
             const isStart = leave.leaveDate === dateStr;
             const prefix = isStart ? '' : '[跨日] ';
             html += `<div class="event-label leave-label" data-leave-employee="${leave.employee}" data-leave-date="${leave.leaveDate}" style="background-color:#e8f5e9;color:#2e7d32;font-size:11px;line-height:1.3;padding:2px 4px;border-radius:3px;margin:1px 0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;width:100%;box-sizing:border-box;cursor:pointer;border-left:3px solid #4caf50;"><span class="leave-square"></span>${prefix}${leave.employee}${leaveTypeStr}</div>`;
         });
+
+        if (isMobile && dots.length) {
+            const MAX_DOTS = 14;
+            const shown = dots.slice(0, MAX_DOTS);
+            const dotHtml = shown.map(d => `<span class="day-dot" style="background:${d.color};" title="${escapeHtml(d.title)}"></span>`).join('');
+            const moreHtml = dots.length > MAX_DOTS ? `<span class="day-dot-more">+${dots.length - MAX_DOTS}</span>` : '';
+            html += `<div class="day-dots">${dotHtml}${moreHtml}</div>`;
+        }
 
         html += '</div>';
     }
@@ -1893,7 +1917,12 @@ function renderMonthView() {
             selectedCalendarDate = new Date(dateStr);
             const pasteDateInput = document.getElementById('pasteDateInput');
             if (pasteDateInput && copiedEvent) pasteDateInput.value = dateStr;
-            openBookingForm(dateStr);
+            if (window.matchMedia('(max-width: 900px)').matches) {
+                viewSelect.value = 'day';
+                updateView();
+            } else {
+                openBookingForm(dateStr);
+            }
         };
     });
     calendarDays.querySelectorAll('.event-label:not(.todo-label):not(.leave-label)').forEach(evEl => {
@@ -4016,17 +4045,40 @@ function showLeaveDetail(leave) {
 }
 
 // ====== 側欄收合 ======
-function initSidebarToggle() {
+ function initSidebarToggle() {
     const toggle = document.getElementById('sidebarToggle');
     const layout = document.querySelector('.main-layout');
     if (!toggle || !layout) return;
+    if (toggle.dataset.sidebarInit) return;
+    toggle.dataset.sidebarInit = '1';
     const STORAGE_KEY = 'sidebarCollapsed';
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === '1') {
-        layout.classList.add('collapsed');
-        toggle.textContent = '▶';
-        toggle.title = '展開側欄';
+    const mq = window.matchMedia('(max-width: 900px)');
+
+    const applyResponsiveSidebar = () => {
+        if (mq.matches) {
+            layout.classList.add('collapsed');
+            toggle.textContent = '▶';
+            toggle.title = '展開側欄';
+        } else {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved === '1') {
+                layout.classList.add('collapsed');
+                toggle.textContent = '▶';
+                toggle.title = '展開側欄';
+            } else {
+                layout.classList.remove('collapsed');
+                toggle.textContent = '◀';
+                toggle.title = '收合側欄';
+            }
+        }
+        window.dispatchEvent(new Event('resize'));
+    };
+
+    applyResponsiveSidebar();
+    if (mq.addEventListener) {
+        mq.addEventListener('change', applyResponsiveSidebar);
     }
+
     toggle.onclick = () => {
         const isCollapsed = layout.classList.toggle('collapsed');
         toggle.textContent = isCollapsed ? '▶' : '◀';

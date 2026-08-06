@@ -1173,3 +1173,152 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
   color: #999;
   font-size: 13px;
 }
+
+/* ========== 響應式：手機 / 平板（<900px） ========== */
+.day-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  justify-content: center;
+  margin-top: 4px;
+}
+.day-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+.day-dot-more {
+  font-size: 9px;
+  color: #888;
+  line-height: 8px;
+}
+
+@media (max-width: 900px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    overflow-x: hidden;
+  }
+
+  /* 頂部工具列：換行 + 加大觸控目標 */
+  .calendar-header {
+    padding: 8px;
+  }
+  .month-nav {
+    flex-wrap: wrap;
+    max-width: 100%;
+    row-gap: 8px;
+  }
+  #monthYear {
+    flex: 1 1 100%;
+    order: -1;
+    font-size: 18px;
+  }
+  #prevbtn,
+  #nextbtn {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+  }
+  .this-month-btn {
+    height: 44px;
+    padding: 0 16px;
+    font-size: 14px;
+  }
+  .setting-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 17px;
+  }
+  .view-select,
+  .filter-select {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .activity-search-wrap {
+    flex: 1 1 100%;
+    order: 10;
+  }
+  .activity-search-input {
+    width: 100%;
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .activity-search-btn {
+    width: 44px;
+    font-size: 15px;
+  }
+
+  /* 月曆手機模式：緊湊格 + 圓點 */
+  .days {
+    grid-auto-rows: 96px;
+  }
+  .day {
+    padding: 3px;
+    overflow: hidden;
+  }
+  .day-number {
+    font-size: 1rem;
+    text-align: center;
+    margin-bottom: 2px;
+  }
+  .day.today::before {
+    content: none;
+  }
+  .day.holiday .holiday-tag {
+    font-size: 8px;
+    display: block;
+    text-align: center;
+  }
+  .event-label {
+    display: none;
+  }
+
+  /* 週/日視圖：禁止頁面橫向跑版 */
+  .timeline-container {
+    min-height: 0;
+    max-height: 82vh;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 彈窗：滿版化 */
+  .add-event-wrapper {
+    width: 96vw !important;
+    max-width: 96vw !important;
+    padding: 14px;
+  }
+  .input-row {
+    flex-wrap: wrap;
+  }
+  .input-row > .input-group {
+    flex: 1 1 100%;
+  }
+  .act-search-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .act-search-custom-range {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .act-search-custom-range .input-group {
+    width: 100%;
+  }
+  .act-search-custom-tilde {
+    display: none;
+  }
+  .act-search-summary {
+    font-size: 13px;
+  }
+  .act-search-table {
+    font-size: 11px;
+  }
+  .act-search-table th,
+  .act-search-table td {
+    padding: 5px 6px;
+  }
+}
