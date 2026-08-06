@@ -1194,7 +1194,7 @@ body { font-family: sans-serif; background: var(--bg-color); margin: 0; padding:
   line-height: 8px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 900px) and (pointer: coarse) {
   html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;

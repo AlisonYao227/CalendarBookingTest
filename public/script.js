@@ -1,5 +1,8 @@
 // --- 元素選取與初始化保持不變 ---
 const API_BASE = "/api";
+// 手機模式：僅在「寬度 <900px 且主要輸入為觸控」時啟用，Mac/Windows 桌面（滑鼠/觸控板）一律維持原樣
+const MOBILE_MODE_MQ = '(max-width: 900px) and (pointer: coarse)';
+function isMobileMode() { return window.matchMedia(MOBILE_MODE_MQ).matches; }
 async function createReservation(data) {
   const res = await fetch(`${API_BASE}/reservations`, {
     method: "POST",
@@ -1825,7 +1828,7 @@ function renderMonthView() {
     monthYear.innerText = `${months[month]} ${year}`;
     const firstDay = new Date(year, month, 1).getDay();
     const lastDate = new Date(year, month + 1, 0).getDate();
-    const isMobile = window.matchMedia('(max-width: 900px)').matches;
+    const isMobile = isMobileMode();
 
     let html = '';
     for (let i = 0; i < firstDay; i++) html += '<div class="empty"></div>';
@@ -1917,7 +1920,7 @@ function renderMonthView() {
             selectedCalendarDate = new Date(dateStr);
             const pasteDateInput = document.getElementById('pasteDateInput');
             if (pasteDateInput && copiedEvent) pasteDateInput.value = dateStr;
-            if (window.matchMedia('(max-width: 900px)').matches) {
+            if (isMobileMode()) {
                 viewSelect.value = 'day';
                 updateView();
             } else {
@@ -4052,7 +4055,7 @@ function showLeaveDetail(leave) {
     if (toggle.dataset.sidebarInit) return;
     toggle.dataset.sidebarInit = '1';
     const STORAGE_KEY = 'sidebarCollapsed';
-    const mq = window.matchMedia('(max-width: 900px)');
+    const mq = window.matchMedia(MOBILE_MODE_MQ);
 
     const applyResponsiveSidebar = () => {
         if (mq.matches) {
